@@ -1,7 +1,7 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
-version: "1.1.0"
+version: "1.1.1"
 ---
 
 # Antigravity CLI (agy) Skill
@@ -44,6 +44,7 @@ Key differences from Gemini CLI:
 | :--- | :--- | :--- |
 | JSON/NDJSON streaming output | `-o stream-json` | Not available |
 | Model selection at spawn time | `-m <model>` | Not available |
+| Reset workspace context | N/A | Not available (v1.0.0) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | Plan/approval mode | `--approval-mode plan` | Use `--sandbox` (partial equivalent) |
@@ -101,8 +102,49 @@ To maintain context across different execution steps:
 2. Follow up later: `agy -c "Now add a login page"`
 3. Resume a specific session: `agy --conversation <id>`
 
+## Advanced Automation Patterns
+
+### 1. Multi-turn Continuity (`-c` + `-p`)
+You can chain non-interactive prompts by combining the continue flag (`-c`) with print mode (`-p`). This is the preferred way for agents to perform multi-step tasks without a TTY:
+
+```bash
+# Turn 1: Initial request
+agy -p "Initialize a new project" --dangerously-skip-permissions
+
+# Turn 2: Follow-up using context from Turn 1
+agy -c -p "Now add a basic index.html" --dangerously-skip-permissions
+```
+
+### 2. Explicit Content Injection
+To ensure the agent has the correct context (bypassing persistent workspace issues), inject file content directly into the prompt:
+
+```bash
+agy -p "$(cat README.md)\n\nBased on this file, what is the project goal?" --dangerously-skip-permissions
+```
+
+### 3. Targeted Workspace Addition
+Use `--add-dir` to explicitly bring external directories into the current session context:
+
+```bash
+agy -p "Analyze this code" --add-dir ./src --dangerously-skip-permissions
+```
+
+## Workspace Management & Persistent State
+
+> [!CAUTION]
+> **Persistent Workspace State Warning**
+> `agy` maintains its own persistent internal workspace context across sessions. It does **NOT** automatically scope itself to your shell's current working directory (CWD).
+> - `cd`-ing into a directory will **not** change the agent's focus.
+> - Running `agy -p` without explicit content may result in answers based on a previous, unrelated project.
+> - **Silent Failure Mode**: If no explicit files are provided, `agy` will answer from the last session context without warning.
+
+To manage this:
+1. Use `--add-dir` to explicitly scope the session.
+2. Use the "Explicit Content Injection" pattern for small files.
+3. Be aware that v1.0.0 has no native command to "reset" or "clear" the workspace context.
+
 ### 4. Workspace Management
-Always ensure you are in the correct directory. Use `--add-dir` if you need to bring in external context from other directories.
+Because `agy` uses persistent state, do not rely on your shell's CWD. Always use `--add-dir` or explicit file injection to ensure the agent is working on the correct codebase.
 
 ### 5. Migrating from Gemini CLI
 If you previously used Gemini CLI:

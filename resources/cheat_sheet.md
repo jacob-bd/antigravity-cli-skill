@@ -33,7 +33,13 @@
 | `-m <model>` | Not available (v1.0.0) |
 | `--approval-mode plan` | `--sandbox` |
 
+## Automation Patterns
+- **Multi-turn**: `agy -p "..."` then `agy -c -p "..."`
+- **Injection**: `agy -p "$(cat file) \n\n prompt"`
+- **Add Dir**: `agy -p "..." --add-dir ./path`
+
 ## Critical Reminders
+- **Workspace Scoping**: `agy` uses persistent state. **CWD DOES NOT SCOPE THE SESSION**. Use `--add-dir` or explicit injection.
 - Always pair `-p` with `--dangerously-skip-permissions` in scripts
 - First run may require interactive setup before `-p` works
 - Default print timeout is 5 minutes -- increase with `--print-timeout` for long tasks
