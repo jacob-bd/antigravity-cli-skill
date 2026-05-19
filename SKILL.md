@@ -1,6 +1,12 @@
+---
+name: antigravity-cli
+description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
+version: "1.1.0"
+---
+
 # Antigravity CLI (agy) Skill
 
-Use this skill to leverage the power of the `agy` CLI for coding tasks, multi-agent orchestration, and workspace management.
+Use this skill to work with the `agy` CLI for coding tasks, multi-agent orchestration, and workspace management.
 
 ## Context: Gemini CLI Successor
 
