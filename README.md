@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="Google Antigravity CLI Skill" width="600">
+</p>
+
 # Antigravity CLI (agy) Skill
 
 An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the official successor to Gemini CLI.
