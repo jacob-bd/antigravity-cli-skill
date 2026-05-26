@@ -29,9 +29,19 @@
 | `gemini -p "prompt"` | `agy -p "prompt"` |
 | `--yolo` | `--dangerously-skip-permissions` |
 | `--resume <id>` | `--conversation <id>` |
-| `-o stream-json` | Not available (v1.0.0) |
-| `-m <model>` | Not available (v1.0.0) |
+| `-o stream-json` | Not available (v1.0.2) |
+| `-m <model>` | Not available (v1.0.2) |
 | `--approval-mode plan` | `--sandbox` |
+
+## Environment Variables & Sandbox
+- `AGY_CLI_HIDE_ACCOUNT_INFO=true` -- Hides email & plan tier from header logs.
+- **Proceed-in-Sandbox mode** (v1.0.1+) -- Automatically approves secure commands inside the sandbox.
+
+## Key /statusline Subcommands
+- `/statusline help` -- Show help configuration.
+- `/statusline delete` / `reset` -- Reset to default.
+- `/statusline enable` / `on` -- Enable statusline.
+- `/statusline disable` / `off` -- Disable statusline.
 
 ## Automation Patterns
 - **Multi-turn**: `agy -p "..."` then `agy -c -p "..."`
@@ -43,5 +53,5 @@
 - Always pair `-p` with `--dangerously-skip-permissions` in scripts
 - First run may require interactive setup before `-p` works
 - Default print timeout is 5 minutes -- increase with `--print-timeout` for long tasks
-- No NDJSON streaming output in v1.0.0 -- you get plain text only
+- No NDJSON streaming output in v1.0.2 -- you get plain text only
 - Run `agy --help` to check for newly added flags after updates

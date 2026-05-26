@@ -44,4 +44,4 @@ cp SKILL.md ~/.gemini/skills/antigravity-cli/SKILL.md
 
 ## Status
 
-This skill tracks agy v1.0.0 (initial release). It will be updated as Google adds features like NDJSON streaming output and model selection flags.
+This skill tracks agy v1.0.2. It will be updated as Google adds features like NDJSON streaming output and model selection flags.
