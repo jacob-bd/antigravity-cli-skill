@@ -81,3 +81,16 @@ agy -p "Run the test suite and fix any failures" \
   --print-timeout 15m \
   --log-file /tmp/agy-ci-$(date +%s).log
 ```
+
+## Pattern 8: Managing and Purchasing G1 Credits
+When model usage standard quota is exhausted, you can check credit balance or trigger automatic credit usage.
+
+```bash
+# Open the interactive CLI TUI
+agy
+
+# Once inside the interactive TUI, type `/credits` in the chat prompt
+# to open the credits panel, view G1 credit balance details, and obtain
+# a direct link to purchase more credits.
+```
+

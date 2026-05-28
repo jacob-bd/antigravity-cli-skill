@@ -1,7 +1,7 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
-version: "1.1.2"
+version: "1.1.3"
 ---
 
 # Antigravity CLI (agy) Skill
@@ -35,16 +35,16 @@ Key differences from Gemini CLI:
 | `--print-timeout <duration>` | | Timeout for print mode (default: `5m0s`). Increase for long tasks. |
 | `--log-file <path>` | | Overrides the default CLI log file path. |
 
-## Known Limitations (v1.0.2)
+## Known Limitations (v1.0.3)
 
 > [!CAUTION]
-> agy v1.0.2 is the current release. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
+> agy v1.0.3 is the current release. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
 
 | Missing Capability | Gemini CLI Equivalent | Status |
 | :--- | :--- | :--- |
 | JSON/NDJSON streaming output | `-o stream-json` | Not available |
 | Model selection at spawn time | `-m <model>` | Not available |
-| Reset workspace context | N/A | Not available (v1.0.2) |
+| Reset workspace context | N/A | Not available (v1.0.3) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | Plan/approval mode | `--approval-mode plan` | Use `--sandbox` (partial equivalent) |
@@ -142,7 +142,7 @@ agy -p "Analyze this code" --add-dir ./src --dangerously-skip-permissions
 To manage this:
 1. Use `--add-dir` to explicitly scope the session.
 2. Use the "Explicit Content Injection" pattern for small files.
-3. Be aware that v1.0.2 has no native command to "reset" or "clear" the workspace context.
+3. Be aware that v1.0.3 has no native command to "reset" or "clear" the workspace context.
 
 ### 4. Workspace Management
 Because `agy` uses persistent state, do not rely on your shell's CWD. Always use `--add-dir` or explicit file injection to ensure the agent is working on the correct codebase.
@@ -165,6 +165,13 @@ The statusline command is fully case-insensitive and supports direct subcommand 
 - `/statusline delete` / `/statusline reset`: Reverts to the default statusline.
 - `/statusline enable` / `/statusline on`: Enables statusline rendering.
 - `/statusline disable` / `/statusline off`: Disables statusline rendering.
+
+#### G1 Credits & `/credits` Panel
+Version `v1.0.3` adds full support for G1 credits:
+- **Automatic Credit Usage**: When standard model quota runs out, the CLI can automatically utilize G1 credits.
+- **`UseG1Credits` Setting**: A new TUI setting enables/disables automatic G1 credit usage.
+- **Real-Time Display**: Remaining G1 credits are displayed in real-time in the terminal's status bar.
+- **`/credits` Panel**: Open the in-CLI credits panel to view credit balance details and access a direct link to purchase additional G1 credits.
 
 #### Keyboard Shortcuts & UI Updates
 - **Slash Commands Caret (`>`)**: All user slash commands and interactive shell inputs in message history are rendered with a caret prefix (`>`) to clearly distinguish them from agent-generated output.
