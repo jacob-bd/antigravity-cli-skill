@@ -1,7 +1,7 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
-version: "1.1.3"
+version: "1.0.5"
 ---
 
 # Antigravity CLI (agy) Skill
@@ -32,19 +32,19 @@ Key differences from Gemini CLI:
 | `--dangerously-skip-permissions` | | **CRITICAL for automation.** Auto-approves all tool permission requests. |
 | `--add-dir <path>` | | Adds a directory to the workspace (repeatable). |
 | `--sandbox` | | Runs in a sandbox with terminal restrictions enabled. |
+| `--model <model>` | | Specifies the model to use for the current CLI session. |
 | `--print-timeout <duration>` | | Timeout for print mode (default: `5m0s`). Increase for long tasks. |
 | `--log-file <path>` | | Overrides the default CLI log file path. |
 
-## Known Limitations (v1.0.3)
+## Known Limitations (v1.0.5)
 
 > [!CAUTION]
-> agy v1.0.3 is the current release. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
+> agy v1.0.5 is the current release. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
 
 | Missing Capability | Gemini CLI Equivalent | Status |
 | :--- | :--- | :--- |
 | JSON/NDJSON streaming output | `-o stream-json` | Not available |
-| Model selection at spawn time | `-m <model>` | Not available |
-| Reset workspace context | N/A | Not available (v1.0.3) |
+| Reset workspace context | N/A | Not available (v1.0.5) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | Plan/approval mode | `--approval-mode plan` | Use `--sandbox` (partial equivalent) |
@@ -73,6 +73,10 @@ Configure environment paths and shell settings.
 - `agy install --dir <path>`: Custom directory target for PATH configuration.
 - `agy install --skip-path`: Skip shell profile PATH appending.
 - `agy install --skip-aliases`: Skip shell profile alias purging.
+
+### `models`
+List available models for CLI sessions.
+- `agy models`: Display a list of available model names.
 
 ### `update`
 `agy update`: Update the CLI to the latest version.
@@ -152,10 +156,14 @@ Because `agy` uses persistent state, do not rely on your shell's CWD. Always use
 #### Environment Variables
 - `AGY_CLI_HIDE_ACCOUNT_INFO`: Set to `true` or `1` to hide user email and plan tier details from the terminal header, preserving privacy during screen shares or CI/CD logs.
 - `ANTIGRAVITY_CLI_ALIAS`: Overrides automatic binary name detection.
+- `AGY_CLI_DISABLE_LATEX`: Set to `true` or `1` to globally disable LaTeX math rendering in the terminal viewport (added in `v1.0.4`).
 
 #### Tool Permissions & Sandbox Mode
 - **Sandbox Mode (`--sandbox`)**: Restricts terminal operations to a secure runtime environment.
-- **Proceed-in-Sandbox Mode**: Added in `v1.0.1`. Automatically approves terminal commands that run inside the sandbox. Manual approval is requested only when a command attempts to bypass the sandbox, making automated non-interactive tasks much smoother.
+- **Proceed-in-Sandbox Mode**: Automatically approves terminal commands that run inside the secure sandbox. Manual approval is requested only when a command attempts to bypass the sandbox, making automated non-interactive tasks much smoother.
+- **Interactive Permissions Configuration (`/permissions`)**: Added in `v1.0.5`. Allows users to add, edit, or remove permission rules directly inside the TUI. Supports configuring permissions for workspace levels, shared settings, and CLI-specific configuration settings.
+- **Integrated Permissions System**: Integrates CLI permissioning with the rest of the Antigravity system, merging project-level permissions, shared user settings, and CLI-specific configuration rules.
+- **MCP URL Support**: Configure MCP servers using URLs inside `mcp_config.json`.
 
 ### 6. Interactive Interface & Commands
 
@@ -165,6 +173,7 @@ The statusline command is fully case-insensitive and supports direct subcommand 
 - `/statusline delete` / `/statusline reset`: Reverts to the default statusline.
 - `/statusline enable` / `/statusline on`: Enables statusline rendering.
 - `/statusline disable` / `/statusline off`: Disables statusline rendering.
+- **Statusline Optimization**: In `v1.0.5`, statusline layout is improved by merging active tips and artifact statuses on a single line, with truncation to prevent collisions on narrow screens.
 
 #### G1 Credits & `/credits` Panel
 Version `v1.0.3` adds full support for G1 credits:
@@ -177,11 +186,23 @@ Version `v1.0.3` adds full support for G1 credits:
 - **Slash Commands Caret (`>`)**: All user slash commands and interactive shell inputs in message history are rendered with a caret prefix (`>`) to clearly distinguish them from agent-generated output.
 - **Improved Shortcuts**: The `/help` shortcuts tab sorts all keybindings by their primary key.
 - **New Keybindings**: Additional built-in shortcuts include:
-  - `ctrl+r`: Reload / Search history
+  - `ctrl+r`: Reload / Search history. As of `v1.0.5`, you can open this Artifact Review panel while answering pending questions or tool permission confirmations, preserving your current progress when toggling back.
   - `ctrl+o`: Open file/url
   - `alt+j` / `ctrl+k`: UI focus and navigation overrides
 - **Scrolling Shortcuts**: General scrolling (`PageUp`/`PageDown`/`GoToTop`/`GoToBottom`) is fully supported across both Commands and Shortcuts tabs.
 - **Session deletion**: In the `/resume` screen, deleting a conversation is bound to `ctrl+delete` (changed from `ctrl+d` to avoid terminal exit conflicts).
+
+#### LaTeX Math Rendering
+Added in `v1.0.4`. Renders beautiful LaTeX mathematical formulas directly in the terminal viewport. You can disable this by setting the `AGY_CLI_DISABLE_LATEX` environment variable.
+
+#### SQLite Conversation Storage & /resume Performance
+As of `v1.0.4`, the CLI uses SQLite (`.db` and `.db-wal`) as its default conversation storage format. Performance of `/resume` is highly optimized in `v1.0.5` through lazy loading conversation details, filtering of empty conversations, and fast scanning of SQLite database files.
+
+#### Centralized Project Discovery
+Decoupled in `v1.0.4` from local workspace directories. Workspace-to-project mappings are centralized in `~/.gemini/antigravity-cli/cache/projects.json` for clutter-free repositories and single-map lookups.
+
+#### Autocomplete Alias Resolution
+As of `v1.0.5`, tab completion for slash commands resolves to the matched alias (e.g., `/se` autocompletes to `/settings` instead of the primary `/config` command).
 
 ### 7. Migrating from Gemini CLI
 If you previously used Gemini CLI:
@@ -197,12 +218,12 @@ Quick reference for translating Gemini CLI commands to agy:
 
 | Gemini CLI | agy Equivalent | Notes |
 | :--- | :--- | :--- |
-| `gemini -p "prompt"` | `agy -p "prompt"` | Same semantics |
-| `gemini --yolo` | `agy --dangerously-skip-permissions` | Longer but same effect |
-| `gemini --resume <id>` | `agy --conversation <id>` | Different flag name |
-| `gemini -o stream-json` | N/A | Not available in v1.0.0 |
-| `gemini -m <model>` | N/A | Not available in v1.0.0 |
-| `gemini --approval-mode plan` | `agy --sandbox` | Partial equivalent |
+| gemini -p "prompt" | `agy -p "prompt"` | Same semantics |
+| gemini --yolo | `agy --dangerously-skip-permissions` | Longer but same effect |
+| gemini --resume <id> | `agy --conversation <id>` | Different flag name |
+| gemini -o stream-json | N/A | Not available in v1.0.5 |
+| gemini -m <model> | `agy --model <model>` | Supported in v1.0.5+ |
+| gemini --approval-mode plan | `agy --sandbox` | Partial equivalent |
 
 ## Troubleshooting
 

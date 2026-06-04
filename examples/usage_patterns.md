@@ -94,3 +94,26 @@ agy
 # a direct link to purchase more credits.
 ```
 
+## Pattern 9: Listing and Specifying Models
+List all available models in the CLI and specify a model when launching a single prompt.
+
+```bash
+# Step 1: List all available models
+agy models
+
+# Step 2: Run a print command using a specific model (e.g. gemini-2.5-pro)
+agy --model gemini-2.5-pro -p "Explain quantum computing in one sentence" --dangerously-skip-permissions
+```
+
+## Pattern 10: Interactive Permissions Configuration
+Allows you to view and modify permission rules directly within the TUI.
+
+```bash
+# Step 1: Open the interactive TUI
+agy
+
+# Step 2: In the chat prompt, type `/permissions`
+# This opens the interactive permission rules manager panel, allowing you
+# to manage workspace, shared settings, and CLI configuration settings.
+```
+
