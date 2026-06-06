@@ -31,7 +31,7 @@
 | `gemini -p "prompt"` | `agy -p "prompt"` |
 | `--yolo` | `--dangerously-skip-permissions` |
 | `--resume <id>` | `--conversation <id>` |
-| `-o stream-json` | Not available (v1.0.5) |
+| `-o stream-json` | Not available (v1.0.6) |
 | `-m <model>` | `agy --model <model>` (v1.0.5+) |
 | `--approval-mode plan` | `--sandbox` |
 
@@ -49,6 +49,9 @@
 - `/statusline disable` / `off` -- Disable statusline.
 - `/credits` -- Opens G1 credits balance info panel and purchase link.
 - `/permissions` -- Interactive panel to view and modify permission rules directly (v1.0.5+).
+- **Path Auto-Completion** -- Shell-style path autocomplete for `/open` and `/add-dir` (v1.0.6+).
+- **Fuzzy Autocomplete** -- Fuzzy command matching (e.g., `/el` suggests `/help` and `/model`) (v1.0.6+).
+- **Optimistic Rendering** -- User prompts render instantly to minimize perceived lag (v1.0.6+).
 
 ## Automation Patterns
 - **Multi-turn**: `agy -p "..."` then `agy -c -p "..."`
@@ -60,5 +63,5 @@
 - Always pair `-p` with `--dangerously-skip-permissions` in scripts
 - First run may require interactive setup before `-p` works
 - Default print timeout is 5 minutes -- increase with `--print-timeout` for long tasks
-- No NDJSON streaming output in v1.0.5 -- you get plain text only
+- No NDJSON streaming output in v1.0.6 -- you get plain text only
 - Run `agy --help` to check for newly added flags after updates
