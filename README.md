@@ -4,6 +4,8 @@
 
 # Antigravity CLI (agy) Skill
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jacobbd)
+
 An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the official successor to Gemini CLI.
 
 ## What This Is
