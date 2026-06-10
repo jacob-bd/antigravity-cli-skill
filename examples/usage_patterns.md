@@ -117,3 +117,48 @@ agy
 # to manage workspace, shared settings, and CLI configuration settings.
 ```
 
+## Pattern 11: Configuring MCP Launch Timeouts
+If you have a slower MCP server that takes a long time to start or initialize, you can configure or disable its launch timeout.
+
+In `~/.gemini/config/mcp_config.json`, add the `"timeout"` parameter to the specific server configuration:
+
+```json
+{
+  "mcpServers": {
+    "my-slow-server": {
+      "command": "node",
+      "args": ["/path/to/server.js"],
+      "timeout": 30000
+    },
+    "my-unlimited-server": {
+      "command": "python3",
+      "args": ["/path/to/server.py"],
+      "timeout": -1
+    }
+  }
+}
+```
+*Note: Setting `"timeout"` to `-1` disables the launch timeout completely for that server.*
+
+## Pattern 12: Stacked Status Line Configuration
+If you write custom status line indicators using community plugins, you can display both the default Antigravity status line and your custom status line indicators vertically stacked in the TUI.
+
+In `~/.gemini/antigravity-cli/settings.json`, configure the `"statusLine"` block:
+
+```json
+{
+  "statusLine": {
+    "stack_with_default": true
+  }
+}
+```
+
+## Pattern 13: Installing Plugins from GitHub Subpaths
+Version 1.0.7 adds support for installing plugins directly from subpaths within GitHub repositories, including branch resolution.
+
+```bash
+# Install a plugin located in a repository subpath on a specific branch
+agy plugin install github.com/owner/repo/subpath@branch-name
+```
+
+

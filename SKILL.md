@@ -1,7 +1,7 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
-version: "1.0.6"
+version: "1.0.7"
 ---
 
 # Antigravity CLI (agy) Skill
@@ -16,6 +16,7 @@ Key differences from Gemini CLI:
 - **Go binary** (not Node.js) -- faster cold startup, no npm dependency chain
 - **Plugin system** replaces Gemini CLI Extensions (`agy plugin import gemini` to migrate)
 - **Unified platform** -- shares the same agent harness as the Antigravity IDE desktop app
+- **Tool calls limit**: Supports up to **512 tool calls** per turn for Gemini models, allowing for highly complex, multi-step agentic tasks.
 - **Binary name**: `agy` (primary), `antigravity` (some Linux distros). Env var `ANTIGRAVITY_CLI_ALIAS` overrides detection.
 - **Install location**: typically `~/.local/bin/agy`
 
@@ -36,15 +37,15 @@ Key differences from Gemini CLI:
 | `--print-timeout <duration>` | | Timeout for print mode (default: `5m0s`). Increase for long tasks. |
 | `--log-file <path>` | | Overrides the default CLI log file path. |
 
-## Known Limitations (v1.0.6)
+## Known Limitations (v1.0.7)
 
 > [!CAUTION]
-> agy v1.0.6 is the current release. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
+> agy v1.0.7 is the current release. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
 
 | Missing Capability | Gemini CLI Equivalent | Status |
 | :--- | :--- | :--- |
 | JSON/NDJSON streaming output | `-o stream-json` | Not available |
-| Reset workspace context | N/A | Not available (v1.0.6) |
+| Reset workspace context | N/A | Not available (v1.0.7) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | Plan/approval mode | `--approval-mode plan` | Use `--sandbox` (partial equivalent) |
@@ -59,7 +60,7 @@ Key differences from Gemini CLI:
 ### `plugin` (alias: `plugins`)
 Manage the capabilities of your agent. Downloaded plugins are stored directly in `~/.gemini/config/` for instant discoverability.
 - `agy plugin list`: See what's installed.
-- `agy plugin install <target>`: Add new powers (e.g., `plugin@marketplace`).
+- `agy plugin install <target>`: Add new powers (e.g., `plugin@marketplace`). Also supports installing directly from GitHub subpaths with branch resolution (e.g., `owner/repo/subpath@branch`).
 - `agy plugin import gemini`: Migrate your Gemini CLI extensions to Antigravity plugins.
 - `agy plugin import claude`: Import Claude Code extensions as plugins.
 - `agy plugin enable/disable <name>`: Toggle specific functionality.
@@ -146,7 +147,7 @@ agy -p "Analyze this code" --add-dir ./src --dangerously-skip-permissions
 To manage this:
 1. Use `--add-dir` to explicitly scope the session.
 2. Use the "Explicit Content Injection" pattern for small files.
-3. Be aware that v1.0.3 has no native command to "reset" or "clear" the workspace context.
+3. Be aware that v1.0.7 has no native command to "reset" or "clear" the workspace context.
 
 ### Environment Variables & Permissions Configuration
 
@@ -156,11 +157,15 @@ To manage this:
 - `AGY_CLI_DISABLE_LATEX`: Set to `true` or `1` to globally disable LaTeX math rendering in the terminal viewport (added in `v1.0.4`).
 
 #### Tool Permissions & Sandbox Mode
-- **Sandbox Mode (`--sandbox`)**: Restricts terminal operations to a secure runtime environment.
+- **Sandbox Mode (`--sandbox`)**: Restricts terminal operations to a secure runtime environment. In `v1.0.6+`, `--sandbox` propagation is fixed in headless print mode (`-p` / `--print`), ensuring sandbox isolation is correctly enforced during non-interactive execution.
 - **Proceed-in-Sandbox Mode**: Automatically approves terminal commands that run inside the secure sandbox. Manual approval is requested only when a command attempts to bypass the sandbox, making automated non-interactive tasks much smoother.
 - **Interactive Permissions Configuration (`/permissions`)**: Added in `v1.0.5`. Allows users to add, edit, or remove permission rules directly inside the TUI. Supports configuring permissions for workspace levels, shared settings, and CLI-specific configuration settings.
 - **Integrated Permissions System**: Integrates CLI permissioning with the rest of the Antigravity system, merging project-level permissions, shared user settings, and CLI-specific configuration rules.
-- **MCP URL Support**: Configure MCP servers using URLs inside `mcp_config.json`.
+- **MCP Config & Launch Options**: 
+  - **MCP URL Support**: Configure MCP servers using URLs inside `mcp_config.json`.
+  - **Configurable Launch Timeout**: A configurable timeout for launching MCP servers is supported in `v1.0.7+`. Specify a custom duration or set it to `-1` to disable the timeout completely (placed within the server definition block in `mcp_config.json`).
+  - **Preserving Unknown Settings**: Unknown fields inside `settings.json` are preserved during read, write, and merge operations, preventing configurations from being silently wiped when upgrading/downgrading.
+  - **Clipboard Support**: Linux now has native Wayland clipboard support via `wl-paste`, falling back to `xclip` on X11, prioritizing copied files over raw image data.
 
 ### Interactive Interface & Commands
 
@@ -171,6 +176,7 @@ The statusline command is fully case-insensitive and supports direct subcommand 
 - `/statusline enable` / `/statusline on`: Enables statusline rendering.
 - `/statusline disable` / `/statusline off`: Disables statusline rendering.
 - **Statusline Optimization**: In `v1.0.5`, statusline layout is improved by merging active tips and artifact statuses on a single line, with truncation to prevent collisions on narrow screens.
+- **Statusline Stacking**: In `v1.0.6+`, a `stack_with_default` flag can be set in the `statusLine` configuration to render both the default status line and custom status line output stacked vertically.
 
 #### G1 Credits & `/credits` Panel
 Version `v1.0.3` adds full support for G1 credits:
@@ -194,6 +200,8 @@ Added in `v1.0.4`. Renders beautiful LaTeX mathematical formulas directly in the
 
 #### SQLite Conversation Storage & /resume Performance
 As of `v1.0.4`, the CLI uses SQLite (`.db` and `.db-wal`) as its default conversation storage format. Performance of `/resume` is highly optimized in `v1.0.5` through lazy loading conversation details, filtering of empty conversations, and fast scanning of SQLite database files.
+- **Subagent Filtering**: Subagent conversations are automatically skipped from `/resume` to keep the picker focused solely on direct user-initiated conversations (v1.0.6+).
+- **Archival Timestamp**: Conversation archiving now correctly saves the archival status timestamp (v1.0.7+).
 
 #### Centralized Project Discovery
 Decoupled in `v1.0.4` from local workspace directories. Workspace-to-project mappings are centralized in `~/.gemini/antigravity-cli/cache/projects.json` for clutter-free repositories and single-map lookups.
@@ -201,17 +209,13 @@ Decoupled in `v1.0.4` from local workspace directories. Workspace-to-project map
 #### Autocomplete Alias Resolution
 As of `v1.0.5`, tab completion for slash commands resolves to the matched alias (e.g., `/se` autocompletes to `/settings` instead of the primary `/config` command).
 
-#### Path Auto-Completion
-Added in `v1.0.6`. Supports shell-style path auto-completion when typing path arguments for the `/open` and `/add-dir` commands in the interactive TUI.
-
-#### Fuzzy Slash Command Suggestions
-Added in `v1.0.6`. Autocompletion for slash commands now supports fuzzy and partial substring matching (e.g., typing `/el` suggests `/help` and `/model`).
-
-#### Optimistic Rendering
-Added in `v1.0.6`. Implements optimistic rendering for user chat prompts, immediately displaying the user's prompt in the viewport to reduce perceived input lag.
-
-#### Bug Fixes & Cache Synchronization
-As of `v1.0.6`, various bugs related to suggestion triggers and cache synchronization are resolved.
+#### TUI & Autocomplete Enhancements
+- **Path Auto-Completion**: Added in `v1.0.6`. Supports shell-style path auto-completion when typing path arguments for the `/open` and `/add-dir` commands in the interactive TUI.
+- **Fuzzy Slash Command Suggestions**: Added in `v1.0.6`. Autocompletion for slash commands now supports fuzzy and partial substring matching (e.g., typing `/el` suggests `/help` and `/model`).
+- **Unconditional `@` Mentions Typeahead**: Suggestions trigger whenever `@` is typed without preceding whitespace (e.g., after opening parenthesis `(`).
+- **Optimistic Rendering**: Added in `v1.0.6`. Implements optimistic rendering for user chat prompts, immediately displaying the user's prompt in the viewport to reduce perceived input lag.
+- **Esc Key Stream Interrupt**: Entering a prompt immediately after pressing `Esc` (to interrupt stream) now accepts input without swallowing/rejecting it.
+- **Artifact Viewer Improvements**: Gutter numbering and line mapping in the artifact viewer are revamped in `v1.0.7+` to accurately align viewport lines with 1-based source line numbers, correctly handling wrapped lines and collapsed Mermaid diagrams. Also resolves layout boundary overflow and scrolling bugs in the detail view when inline comments are present.
 
 ### Migrating from Gemini CLI
 If you previously used Gemini CLI:
@@ -230,7 +234,7 @@ Quick reference for translating Gemini CLI commands to agy:
 | gemini -p "prompt" | `agy -p "prompt"` | Same semantics |
 | gemini --yolo | `agy --dangerously-skip-permissions` | Longer but same effect |
 | gemini --resume <id> | `agy --conversation <id>` | Different flag name |
-| gemini -o stream-json | N/A | Not available in v1.0.6 |
+| gemini -o stream-json | N/A | Not available in v1.0.7 |
 | gemini -m <model> | `agy --model <model>` | Supported in v1.0.5+ |
 | gemini --approval-mode plan | `agy --sandbox` | Partial equivalent |
 

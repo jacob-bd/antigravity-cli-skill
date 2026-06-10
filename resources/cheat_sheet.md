@@ -20,7 +20,7 @@
 - `agy install` -- Configure PATH and shell
 - `agy models` -- List available models for CLI sessions
 - `agy plugin list` -- View installed plugins
-- `agy plugin install <target>` -- Add a plugin
+- `agy plugin install <target>` -- Add a plugin (supports `plugin@marketplace` or GitHub subpaths `owner/repo/subpath@branch`)
 - `agy plugin import gemini` -- Migrate Gemini CLI extensions
 - `agy plugin import claude` -- Import Claude extensions
 - `agy plugin enable/disable <name>` -- Toggle a plugin
@@ -31,7 +31,7 @@
 | `gemini -p "prompt"` | `agy -p "prompt"` |
 | `--yolo` | `--dangerously-skip-permissions` |
 | `--resume <id>` | `--conversation <id>` |
-| `-o stream-json` | Not available (v1.0.6) |
+| `-o stream-json` | Not available (v1.0.7) |
 | `-m <model>` | `agy --model <model>` (v1.0.5+) |
 | `--approval-mode plan` | `--sandbox` |
 
@@ -41,15 +41,19 @@
 - **Proceed-in-Sandbox mode** (v1.0.1+) -- Automatically approves secure commands inside the sandbox.
 - **UseG1Credits setting** (v1.0.3+) -- Toggles automatic use of G1 credits when standard quota is depleted.
 - **SQLite Storage** (v1.0.4+) -- Centralized SQLite database format (.db, .db-wal) for conversation history.
+- **MCP Launch Timeout** (v1.0.7+) -- Configure launch timeout in `mcp_config.json` per server block, or set to `-1` to disable.
+- **Wayland Clipboard** (v1.0.7+) -- Native `wl-paste` support on Linux, falling back to `xclip` on X11.
+- **Preserved Settings** (v1.0.7+) -- Unknown fields in `settings.json` are preserved across read/write/merge.
 
 ## Key Subcommands & TUI Panels
 - `/statusline help` -- Show help configuration.
 - `/statusline delete` / `reset` -- Reset to default.
 - `/statusline enable` / `on` -- Enable statusline.
 - `/statusline disable` / `off` -- Disable statusline.
+- `/statusline` setting `stack_with_default: true` (v1.0.6+) -- Renders default and custom status lines stacked vertically.
 - `/credits` -- Opens G1 credits balance info panel and purchase link.
 - `/permissions` -- Interactive panel to view and modify permission rules directly (v1.0.5+).
-- **Path Auto-Completion** -- Shell-style path autocomplete for `/open` and `/add-dir` (v1.0.6+).
+- `/open` and `/add-dir` (v1.0.6+) -- Support shell-style path auto-completion in TUI.
 - **Fuzzy Autocomplete** -- Fuzzy command matching (e.g., `/el` suggests `/help` and `/model`) (v1.0.6+).
 - **Optimistic Rendering** -- User prompts render instantly to minimize perceived lag (v1.0.6+).
 
@@ -60,8 +64,10 @@
 
 ## Critical Reminders
 - **Workspace Scoping**: `agy` uses persistent state. **CWD DOES NOT SCOPE THE SESSION**. Use `--add-dir` or explicit injection.
-- Always pair `-p` with `--dangerously-skip-permissions` in scripts
-- First run may require interactive setup before `-p` works
-- Default print timeout is 5 minutes -- increase with `--print-timeout` for long tasks
-- No NDJSON streaming output in v1.0.6 -- you get plain text only
-- Run `agy --help` to check for newly added flags after updates
+- **Tool calls limit**: Gemini models support up to 512 tool calls per turn (v1.0.7+).
+- **Subagents Filtering**: Subagent sessions are filtered from the `/resume` list (v1.0.6+).
+- Always pair `-p` with `--dangerously-skip-permissions` in scripts.
+- First run may require interactive setup before `-p` works.
+- Default print timeout is 5 minutes -- increase with `--print-timeout` for long tasks.
+- No NDJSON streaming output in v1.0.7 -- you get plain text only.
+- Run `agy --help` to check for newly added flags after updates.

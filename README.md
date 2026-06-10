@@ -5,6 +5,9 @@
 # Antigravity CLI (agy) Skill
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jacobbd)
+[![Universal Skills Manager](https://img.shields.io/badge/USM-Compatible-blue?logo=github&style=flat-square)](https://github.com/jacob-bd/universal-skills-manager)
+[![GitHub stars](https://img.shields.io/github/stars/jacob-bd/antigravity-cli-skill?style=flat-square&logo=github)](https://github.com/jacob-bd/antigravity-cli-skill/stargazers)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
 
 An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the official successor to Gemini CLI.
 
@@ -12,8 +15,8 @@ An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the offic
 
 This is a skill file that teaches AI coding agents (Claude Code, Gemini CLI, Codex, Cursor, etc.) how to use the `agy` command-line tool effectively. It covers:
 
-- Complete flag reference for agy v1.0.6
-- Known v1.0.6 limitations (flags that don't exist yet)
+- Complete flag reference for agy v1.0.7
+- Known v1.0.7 limitations (flags that don't exist yet)
 - Gemini CLI to agy migration guide and flag mapping
 - Best practices for automation and scripting
 - Troubleshooting common issues
@@ -46,4 +49,4 @@ cp SKILL.md ~/.gemini/skills/antigravity-cli/SKILL.md
 
 ## Status
 
-This skill tracks agy v1.0.6. It will be updated as Google adds features like NDJSON streaming output.
+This skill tracks agy v1.0.7. It will be updated as Google adds features like NDJSON streaming output.
