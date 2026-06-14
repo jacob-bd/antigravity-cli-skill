@@ -1,10 +1,11 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
-version: "1.0.7"
 ---
 
 # Antigravity CLI (agy) Skill
+
+Targets locally installed `agy` v1.0.8. The local `agy changelog` currently lists release notes through v1.0.7 and has no separate v1.0.8 section.
 
 Use this skill to work with the `agy` CLI for coding tasks, multi-agent orchestration, and workspace management.
 
@@ -37,15 +38,15 @@ Key differences from Gemini CLI:
 | `--print-timeout <duration>` | | Timeout for print mode (default: `5m0s`). Increase for long tasks. |
 | `--log-file <path>` | | Overrides the default CLI log file path. |
 
-## Known Limitations (v1.0.7)
+## Known Limitations (verified with installed v1.0.8)
 
 > [!CAUTION]
-> agy v1.0.7 is the current release. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
+> This skill is verified against locally installed agy v1.0.8. The local `agy changelog` output currently lists release notes through v1.0.7 and has no separate v1.0.8 section. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
 
 | Missing Capability | Gemini CLI Equivalent | Status |
 | :--- | :--- | :--- |
 | JSON/NDJSON streaming output | `-o stream-json` | Not available |
-| Reset workspace context | N/A | Not available (v1.0.7) |
+| Reset workspace context | N/A | Not available (verified v1.0.8) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | Plan/approval mode | `--approval-mode plan` | Use `--sandbox` (partial equivalent) |
@@ -147,7 +148,7 @@ agy -p "Analyze this code" --add-dir ./src --dangerously-skip-permissions
 To manage this:
 1. Use `--add-dir` to explicitly scope the session.
 2. Use the "Explicit Content Injection" pattern for small files.
-3. Be aware that v1.0.7 has no native command to "reset" or "clear" the workspace context.
+3. Be aware that v1.0.8 has no native command to "reset" or "clear" the workspace context.
 
 ### Environment Variables & Permissions Configuration
 
@@ -234,7 +235,7 @@ Quick reference for translating Gemini CLI commands to agy:
 | gemini -p "prompt" | `agy -p "prompt"` | Same semantics |
 | gemini --yolo | `agy --dangerously-skip-permissions` | Longer but same effect |
 | gemini --resume <id> | `agy --conversation <id>` | Different flag name |
-| gemini -o stream-json | N/A | Not available in v1.0.7 |
+| gemini -o stream-json | N/A | Not available in verified v1.0.8 |
 | gemini -m <model> | `agy --model <model>` | Supported in v1.0.5+ |
 | gemini --approval-mode plan | `agy --sandbox` | Partial equivalent |
 

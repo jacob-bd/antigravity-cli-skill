@@ -31,7 +31,7 @@
 | `gemini -p "prompt"` | `agy -p "prompt"` |
 | `--yolo` | `--dangerously-skip-permissions` |
 | `--resume <id>` | `--conversation <id>` |
-| `-o stream-json` | Not available (v1.0.7) |
+| `-o stream-json` | Not available (verified v1.0.8) |
 | `-m <model>` | `agy --model <model>` (v1.0.5+) |
 | `--approval-mode plan` | `--sandbox` |
 
@@ -69,5 +69,5 @@
 - Always pair `-p` with `--dangerously-skip-permissions` in scripts.
 - First run may require interactive setup before `-p` works.
 - Default print timeout is 5 minutes -- increase with `--print-timeout` for long tasks.
-- No NDJSON streaming output in v1.0.7 -- you get plain text only.
+- No NDJSON streaming output in verified v1.0.8 -- you get plain text only.
 - Run `agy --help` to check for newly added flags after updates.
