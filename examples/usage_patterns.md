@@ -154,7 +154,7 @@ In `~/.gemini/antigravity-cli/settings.json`, configure the `"statusLine"` block
 ```
 
 ## Pattern 13: Installing Plugins from GitHub Subpaths
-Version 1.0.7 adds support for installing plugins directly from subpaths within GitHub repositories, including branch resolution.
+Version 1.0.7 adds support for installing plugins directly from subpaths within GitHub repositories, including branch resolution. In `v1.0.9+`, plugin installation automatically resolves and initializes Git submodules.
 
 ```bash
 # Install a plugin located in a repository subpath on a specific branch
