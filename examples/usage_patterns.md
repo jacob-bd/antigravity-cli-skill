@@ -161,4 +161,10 @@ Version 1.0.7 adds support for installing plugins directly from subpaths within 
 agy plugin install github.com/owner/repo/subpath@branch-name
 ```
 
+## Pattern 14: Using the Built-In Antigravity Guide Skill
+Version 1.0.10 introduces the `antigravity_guide` built-in skill. You can use it to instantly get guide info for Antigravity, the CLI, the IDE, or the SDK from inside a conversation.
 
+```bash
+# Ask the agent to explain a feature using the built-in guide
+agy -p "Using the antigravity_guide, explain how to configure custom statuslines in settings.json" --dangerously-skip-permissions
+```

@@ -5,7 +5,7 @@ description: "Expert guide for Google's Antigravity CLI (agy), the official succ
 
 # Antigravity CLI (agy) Skill
 
-Targets locally installed `agy` v1.0.9.
+Targets locally installed `agy` v1.0.10.
 
 Use this skill to work with the `agy` CLI for coding tasks, multi-agent orchestration, and workspace management.
 
@@ -41,12 +41,12 @@ Key differences from Gemini CLI:
 ## Known Limitations (verified with installed v1.0.9)
 
 > [!CAUTION]
-> This skill is verified against locally installed agy v1.0.9. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
+> This skill is verified against locally installed agy v1.0.10. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
 
 | Missing Capability | Gemini CLI Equivalent | Status |
 | :--- | :--- | :--- |
 | JSON/NDJSON streaming output | `-o stream-json` | Not available |
-| Reset workspace context | N/A | Not available (verified v1.0.9) |
+| Reset workspace context | N/A | Not available (verified v1.0.10) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | Plan/approval mode | `--approval-mode plan` | Use `--sandbox` (partial equivalent) |
@@ -151,7 +151,7 @@ agy -p "Analyze this code" --add-dir ./src --dangerously-skip-permissions
 To manage this:
 1. Use `--add-dir` to explicitly scope the session.
 2. Use the "Explicit Content Injection" pattern for small files.
-3. Be aware that v1.0.9 has no native command to "reset" or "clear" the workspace context.
+3. Be aware that v1.0.10 has no native command to "reset" or "clear" the workspace context.
 
 ### Environment Variables & Permissions Configuration
 
@@ -165,6 +165,7 @@ To manage this:
 - **Proceed-in-Sandbox Mode**: Automatically approves terminal commands that run inside the secure sandbox. Manual approval is requested only when a command attempts to bypass the sandbox, making automated non-interactive tasks much smoother.
 - **Hardened Sandbox Checks (`v1.0.9+`)**: Enforces strict exact-match verification for PowerShell scripts, complex shell redirections (`>`, `2>&1`), and unparseable strings. Additionally, the `.git` directory is added to the core list of dangerous paths to prevent unauthorized repository modifications.
 - **Optimized Customizations Permissions (`v1.0.9+`)**: Automatically grants read-only access to the built-in customizations directory, eliminating redundant permission prompts on startup.
+- **Permission & Flag Fixes (`v1.0.10+`)**: Escapes regex metacharacters in saved permission rules to prevent infinite loops, fixes environment flag parsing, ensures "ask" permissions in `settings.json` are preserved across configuration writes, and resolves bash mode argument escaping (defaulting shell resolution to PowerShell).
 - **Interactive Permissions Configuration (`/permissions`)**: Added in `v1.0.5`. Allows users to add, edit, or remove permission rules directly inside the TUI. Supports configuring permissions for workspace levels, shared settings, and CLI-specific configuration settings.
 - **Integrated Permissions System**: Integrates CLI permissioning with the rest of the Antigravity system, merging project-level permissions, shared user settings, and CLI-specific configuration rules.
 - **MCP Config & Launch Options**: 
@@ -227,7 +228,9 @@ As of `v1.0.5`, tab completion for slash commands resolves to the matched alias 
 - **Esc Key Stream Interrupt**: Entering a prompt immediately after pressing `Esc` (to interrupt stream) now accepts input without swallowing/rejecting it.
 - **Artifact Viewer Improvements**: Gutter numbering and line mapping in the artifact viewer are revamped in `v1.0.7+` to accurately align viewport lines with 1-based source line numbers, correctly handling wrapped lines and collapsed Mermaid diagrams. Layout boundary overflow and scrolling bugs in the detail view with inline comments are resolved. Gutter layout rendering complexity during long sessions is also optimized to prevent hangs (`v1.0.8+`).
 - **Dynamic Skill & Command Autocomplete**: Custom skills and system slash commands are dynamically reloaded and instantly discovered upon conversation switch or `/add-dir` (`v1.0.8+`).
-- **Glamour Parsing Error Handling**: Graceful fallback to raw text with a warning banner on bubbletea parsing errors (e.g. nested checkboxes inside list emphasis), preventing TUI crashes (`v1.0.9+`).
+- **Builtin Guide Skill (`v1.0.10+`)**: Includes the `antigravity_guide` builtin skill to provide instant, in-context reference guides for Antigravity 2.0, CLI, IDE, and SDK.
+- **Glamour Parsing Error Handling**: Graceful fallback to raw text with a warning banner on bubbletea parsing errors (e.g. nested checkboxes inside list emphasis), preventing TUI crashes (`v1.0.9+`). Renders cleaner headings and block padding with upgraded Glamour v2.0.1 (`v1.0.10+`).
+- **TUI & Git Enhancements (`v1.0.10+`)**: Scrolling in commit history navigation immediately loads/displays changed files and diffs; ASCII node graphs (`git log --graph`) are enabled for visual parity; short (6-char) commit hashes are matched to long (64-char) hashes; system errors/warnings use a dedicated alert message type; and CLI log file path is accessible in the `/help` menu.
 
 #### Models & Quota Page (`v1.0.8+`)
 - **Redesigned Interface**: Enabled by default, replacing the legacy usage page. It handles disabled quota buckets by displaying a dimmed "Disabled" status and omitting progress bars.
@@ -256,7 +259,7 @@ Quick reference for translating Gemini CLI commands to agy:
 | gemini -p "prompt" | `agy -p "prompt"` | Same semantics |
 | gemini --yolo | `agy --dangerously-skip-permissions` | Longer but same effect |
 | gemini --resume <id> | `agy --conversation <id>` | Different flag name |
-| gemini -o stream-json | N/A | Not available in verified v1.0.9 |
+| gemini -o stream-json | N/A | Not available in verified v1.0.10 |
 | gemini -m <model> | `agy --model <model>` | Supported in v1.0.5+ |
 | gemini --approval-mode plan | `agy --sandbox` | Partial equivalent |
 

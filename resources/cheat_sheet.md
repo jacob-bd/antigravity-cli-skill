@@ -31,7 +31,7 @@
 | `gemini -p "prompt"` | `agy -p "prompt"` |
 | `--yolo` | `--dangerously-skip-permissions` |
 | `--resume <id>` | `--conversation <id>` |
-| `-o stream-json` | Not available (verified v1.0.9) |
+| `-o stream-json` | Not available (verified v1.0.10) |
 | `-m <model>` | `agy --model <model>` (v1.0.5+) |
 | `--approval-mode plan` | `--sandbox` |
 
@@ -41,6 +41,7 @@
 - **Proceed-in-Sandbox mode** (v1.0.1+) -- Automatically approves secure commands inside the sandbox.
 - **Hardened Sandbox Checks** (v1.0.9+) -- Enforces exact-match verification for PowerShell, redirects, and unparseable commands. Adds `.git` to dangerous paths.
 - **Optimized Customizations Permissions** (v1.0.9+) -- Automatically grants read-only access to built-in customizations, avoiding startup prompts.
+- **Permission & Flag Fixes** (v1.0.10+) -- Escapes regex metacharacters in saved rules, fixes environment flag parsing, ensures "ask" permissions in `settings.json` are preserved across configuration writes, and resolves bash mode argument escaping (defaulting shell resolution to PowerShell).
 - **UseG1Credits setting** (v1.0.3+) -- Toggles automatic use of G1 credits when standard quota is depleted.
 - **SQLite Storage** (v1.0.4+) -- Centralized SQLite database format (.db, .db-wal) for conversation history.
 - **MCP Launch Timeout** (v1.0.7+) -- Configure launch timeout in `mcp_config.json` per server block, or set to `-1` to disable.
@@ -60,7 +61,9 @@
 - **Fuzzy Autocomplete** -- Fuzzy command matching (e.g., `/el` suggests `/help` and `/model`) (v1.0.6+). Autocomplete prefix bugs fixed (v1.0.8+).
 - **Optimistic Rendering** -- User prompts render instantly to minimize perceived lag (v1.0.6+).
 - **TUI & Shortcuts Updates** (v1.0.8+) -- Replays slash command history (Up arrow), guards against long pastes, redesigns `/resume` picker and `/tasks` detail views, and optimizes `/btw` tokens.
-- **TUI Robustness** (v1.0.9+) -- Graceful fallback warning banner for Glamour parsing errors instead of crashing.
+- **TUI Robustness** (v1.0.9+) -- Graceful fallback warning banner for Glamour parsing errors instead of crashing. Upgraded to Glamour v2.0.1 for cleaner headings and block padding (`v1.0.10+`).
+- **TUI & Git Enhancements** (v1.0.10+) -- scrolling commit navigation immediately loads changed files/diffs, ASCII node graphs (`git log --graph`) enabled, short (6-char) commit hash matching resolved, alert message types for system errors, and CLI log file path added to `/help`.
+- **Builtin Guide Skill** (v1.0.10+) -- Includes the `antigravity_guide` builtin skill for instant, in-context reference guides.
 
 ## Automation Patterns
 - **Multi-turn**: `agy -p "..."` then `agy -c -p "..."`
@@ -74,5 +77,5 @@
 - Always pair `-p` with `--dangerously-skip-permissions` in scripts.
 - First run may require interactive setup before `-p` works.
 - Default print timeout is 5 minutes -- increase with `--print-timeout` for long tasks.
-- No NDJSON streaming output in verified v1.0.9 -- you get plain text only.
+- No NDJSON streaming output in verified v1.0.10 -- you get plain text only.
 - Run `agy --help` to check for newly added flags after updates.
