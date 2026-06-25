@@ -5,7 +5,7 @@ description: "Expert guide for Google's Antigravity CLI (agy), the official succ
 
 # Antigravity CLI (agy) Skill
 
-Targets locally installed `agy` v1.0.10.
+Targets locally installed `agy` v1.0.12.
 
 Use this skill to work with the `agy` CLI for coding tasks, multi-agent orchestration, and workspace management.
 
@@ -37,16 +37,18 @@ Key differences from Gemini CLI:
 | `--model <model>` | | Specifies the model to use for the current CLI session. |
 | `--print-timeout <duration>` | | Timeout for print mode (default: `5m0s`). Increase for long tasks. |
 | `--log-file <path>` | | Overrides the default CLI log file path. |
+| `--project <id>` | | Explicitly set project ID for the session (`v1.0.12+`). |
+| `--new-project` | | Create a new project for this session (`v1.0.12+`). |
 
-## Known Limitations (verified with installed v1.0.9)
+## Known Limitations (verified with installed v1.0.12)
 
 > [!CAUTION]
-> This skill is verified against locally installed agy v1.0.10. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
+> This skill is verified against locally installed agy v1.0.12. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
 
 | Missing Capability | Gemini CLI Equivalent | Status |
 | :--- | :--- | :--- |
 | JSON/NDJSON streaming output | `-o stream-json` | Not available |
-| Reset workspace context | N/A | Not available (verified v1.0.10) |
+| Reset workspace context | N/A | Not available (verified v1.0.12) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | Plan/approval mode | `--approval-mode plan` | Use `--sandbox` (partial equivalent) |
@@ -151,7 +153,7 @@ agy -p "Analyze this code" --add-dir ./src --dangerously-skip-permissions
 To manage this:
 1. Use `--add-dir` to explicitly scope the session.
 2. Use the "Explicit Content Injection" pattern for small files.
-3. Be aware that v1.0.10 has no native command to "reset" or "clear" the workspace context.
+3. Be aware that v1.0.12 has no native command to "reset" or "clear" the workspace context.
 
 ### Environment Variables & Permissions Configuration
 
@@ -159,6 +161,8 @@ To manage this:
 - `AGY_CLI_HIDE_ACCOUNT_INFO`: Set to `true` or `1` to hide user email and plan tier details from the terminal header, preserving privacy during screen shares or CI/CD logs.
 - `ANTIGRAVITY_CLI_ALIAS`: Overrides automatic binary name detection.
 - `AGY_CLI_DISABLE_LATEX`: Set to `true` or `1` to globally disable LaTeX math rendering in the terminal viewport (added in `v1.0.4`).
+- `USE_ADC`: Set to `1` to authenticate via Application Default Credentials (`v1.0.11+`).
+- `AGY_CLI_CMD_OUTPUT_PERCENTAGE`: Customize max height of command outputs in the TUI as a percentage (`v1.0.11+`).
 
 #### Tool Permissions & Sandbox Mode
 - **Sandbox Mode (`--sandbox`)**: Restricts terminal operations to a secure runtime environment. In `v1.0.6+`, `--sandbox` propagation is fixed in headless print mode (`-p` / `--print`), ensuring sandbox isolation is correctly enforced during non-interactive execution.
@@ -167,7 +171,7 @@ To manage this:
 - **Optimized Customizations Permissions (`v1.0.9+`)**: Automatically grants read-only access to the built-in customizations directory, eliminating redundant permission prompts on startup.
 - **Permission & Flag Fixes (`v1.0.10+`)**: Escapes regex metacharacters in saved permission rules to prevent infinite loops, fixes environment flag parsing, ensures "ask" permissions in `settings.json` are preserved across configuration writes, and resolves bash mode argument escaping (defaulting shell resolution to PowerShell).
 - **Interactive Permissions Configuration (`/permissions`)**: Added in `v1.0.5`. Allows users to add, edit, or remove permission rules directly inside the TUI. Supports configuring permissions for workspace levels, shared settings, and CLI-specific configuration settings.
-- **Integrated Permissions System**: Integrates CLI permissioning with the rest of the Antigravity system, merging project-level permissions, shared user settings, and CLI-specific configuration rules.
+- **Integrated Permissions System**: Integrates CLI permissioning with the rest of the Antigravity system, merging project-level permissions, shared user settings, and CLI-specific configuration rules. In `v1.0.12+`, project-specific configurations (in `~/.gemini/config/projects/`) take precedence over global settings.
 - **MCP Config & Launch Options**: 
   - **MCP URL Support**: Configure MCP servers using URLs inside `mcp_config.json`.
   - **Configurable Launch Timeout**: A configurable timeout for launching MCP servers is supported in `v1.0.7+`. Specify a custom duration or set it to `-1` to disable the timeout completely (placed within the server definition block in `mcp_config.json`).
@@ -201,9 +205,11 @@ Version `v1.0.3` adds full support for G1 credits:
 - **New Keybindings**: Additional built-in shortcuts include:
   - `ctrl+r`: Reload / Search history. As of `v1.0.5`, you can open this Artifact Review panel while answering pending questions or tool permission confirmations, preserving your current progress when toggling back.
   - `ctrl+o`: Open file/url
+  - `ctrl+g`: Expanded AltScreen view for tool confirmations replacing inline edit (`v1.0.11+`).
   - `alt+j` / `ctrl+k`: UI focus and navigation overrides
 - **Scrolling Shortcuts**: General scrolling (`PageUp`/`PageDown`/`GoToTop`/`GoToBottom`) is fully supported across both Commands and Shortcuts tabs.
 - **Session deletion**: In the `/resume` screen, deleting a conversation is bound to `ctrl+delete` (changed from `ctrl+d` to avoid terminal exit conflicts).
+- **Interrupt and Exit (`v1.0.11+`)**: `ctrl+c` cancels active agent operations on first press, and exits on double-press. `ctrl+d` acts as forward-delete when input contains text.
 
 #### LaTeX Math Rendering
 Added in `v1.0.4`. Renders beautiful LaTeX mathematical formulas directly in the terminal viewport. You can disable this by setting the `AGY_CLI_DISABLE_LATEX` environment variable.
@@ -259,7 +265,7 @@ Quick reference for translating Gemini CLI commands to agy:
 | gemini -p "prompt" | `agy -p "prompt"` | Same semantics |
 | gemini --yolo | `agy --dangerously-skip-permissions` | Longer but same effect |
 | gemini --resume <id> | `agy --conversation <id>` | Different flag name |
-| gemini -o stream-json | N/A | Not available in verified v1.0.10 |
+| gemini -o stream-json | N/A | Not available in verified v1.0.12 |
 | gemini -m <model> | `agy --model <model>` | Supported in v1.0.5+ |
 | gemini --approval-mode plan | `agy --sandbox` | Partial equivalent |
 

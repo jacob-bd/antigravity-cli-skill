@@ -168,3 +168,14 @@ Version 1.0.10 introduces the `antigravity_guide` built-in skill. You can use it
 # Ask the agent to explain a feature using the built-in guide
 agy -p "Using the antigravity_guide, explain how to configure custom statuslines in settings.json" --dangerously-skip-permissions
 ```
+
+## Pattern 15: Explicitly Set or Create Projects
+Version 1.0.12 introduces the `--project` and `--new-project` flags to control the project context regardless of the active workspace.
+
+```bash
+# Launch with a specific project ID
+agy --project "proj-12345" -p "Check the status" --dangerously-skip-permissions
+
+# Create a new project for the session
+agy --new-project -i "Let's build a new feature"
+```
