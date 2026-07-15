@@ -4,10 +4,14 @@
 
 # Antigravity CLI (agy) Skill
 
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jacobbd)
 [![Universal Skills Manager](https://img.shields.io/badge/USM-Compatible-blue?logo=github&style=flat-square)](https://github.com/jacob-bd/universal-skills-manager)
 [![GitHub stars](https://img.shields.io/github/stars/jacob-bd/antigravity-cli-skill?style=flat-square&logo=github)](https://github.com/jacob-bd/antigravity-cli-skill/stargazers)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
+
+> ☕ **If you find this skill useful, consider [buying me a coffee](https://buymeacoffee.com/jacobbd).**
+> It's free and built in my spare time. A coffee helps me cover my time and keep shipping updates. Thank you! 🙏
+>
+> <a href="https://buymeacoffee.com/jacobbd"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="42"></a>
 
 An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the official successor to Gemini CLI.
 
@@ -15,8 +19,8 @@ An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the offic
 
 This is a skill file that teaches AI coding agents (Claude Code, Gemini CLI, Codex, Cursor, etc.) how to use the `agy` command-line tool effectively. It covers:
 
-- Complete flag reference for agy v1.1.0
-- Known v1.1.0 limitations (flags that don't exist yet)
+- Complete flag reference for agy v1.1.2
+- Known v1.1.2 limitations (flags that don't exist yet)
 - Gemini CLI to agy migration guide and flag mapping
 - Best practices for automation and scripting
 - Troubleshooting common issues
@@ -49,4 +53,10 @@ cp SKILL.md ~/.gemini/skills/antigravity-cli/SKILL.md
 
 ## Status
 
-This skill tracks locally installed agy v1.1.0.
+This skill tracks locally installed agy v1.1.2.
+
+## Support
+
+If this skill saves you time or money, you can help support its development. Any support is hugely appreciated. 🙏
+
+<a href="https://buymeacoffee.com/jacobbd"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="42"></a>

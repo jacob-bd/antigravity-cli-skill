@@ -1,11 +1,12 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
+version: 1.1.2
 ---
 
 # Antigravity CLI (agy) Skill
 
-Targets locally installed `agy` v1.1.0.
+Targets locally installed `agy` v1.1.2.
 
 Use this skill to work with the `agy` CLI for coding tasks, multi-agent orchestration, and workspace management.
 
@@ -33,6 +34,7 @@ Key differences from Gemini CLI:
 | `--conversation <id>` | | Resumes a specific conversation by its ID. |
 | `--dangerously-skip-permissions` | | **CRITICAL for automation.** Auto-approves all tool permission requests. |
 | `--add-dir <path>` | | Adds a directory to the workspace (repeatable). |
+| `--agent <agent>` | | Specifies a custom agent for the current CLI session (`v1.1.1+`). |
 | `--sandbox` | | Runs in a sandbox with terminal restrictions enabled. |
 | `--model <model>` | | Specifies the model to use for the current CLI session. |
 | `--mode <mode>` | | Set the agent execution mode for this session (`accept-edits`, `plan`). |
@@ -41,15 +43,15 @@ Key differences from Gemini CLI:
 | `--project <id>` | | Explicitly set project ID for the session (`v1.0.12+`). |
 | `--new-project` | | Create a new project for this session (`v1.0.12+`). |
 
-## Known Limitations (verified with installed v1.1.0)
+## Known Limitations (verified with installed v1.1.2)
 
 > [!CAUTION]
-> This skill is verified against locally installed agy v1.1.0. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
+> This skill is verified against locally installed agy v1.1.2. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
 
 | Missing Capability | Gemini CLI Equivalent | Status |
 | :--- | :--- | :--- |
 | JSON/NDJSON streaming output | `-o stream-json` | Not available |
-| Reset workspace context | N/A | Not available (verified v1.1.0) |
+| Reset workspace context | N/A | Not available (verified v1.1.2) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | MCP server control | `--allowed-mcp-server-names=` | Not available |
@@ -63,7 +65,7 @@ Key differences from Gemini CLI:
 Version `v1.1.0` introduces cycling and persistent setting of agent execution modes.
 
 ### The Three Execution Modes
-- **`default` (with `request-review` behavior)**: The default behavior. The agent automatically pauses before file write operations (`write_to_file` and `replace_file_content` / `multi_replace_file_content`) to show an interactive, line-level diff preview (accessible via `f` shortcut in TUI). Users can review, accept, or reject individual changes before they are saved to disk. New file creations are rendered as addition-only diff previews.
+- **`default` (with `request-review` behavior)**: The default behavior. The agent automatically pauses before file write operations (`write_to_file` and `replace_file_content` / `multi_replace_file_content`) to show an interactive, line-level diff preview (accessible via `f` shortcut in TUI). Users can review, accept, or reject individual changes before they are saved to disk. New file creations are rendered as addition-only diff previews (also accessible via `f` shortcut `v1.1.2+`). As of `v1.1.1`, the default mode respects `write_file` permissions allowlisted in `settings.json` under `permission.allow` so pre-approved file writes do not prompt for review.
 - **`accept-edits`**: Automatically accepts file edits and creations without prompting for individual line-level reviews, streamlining fast development.
 - **`plan`**: Replaces the legacy `/planning` mode. Focuses the agent on producing a comprehensive plan (`PLAN.md`) first, requiring verification before execution. Note that `/fast` slash commands have been removed in favor of this simplified cycling model.
 
@@ -73,6 +75,10 @@ Version `v1.1.0` introduces cycling and persistent setting of agent execution mo
 - **Persistent Setting**: Set and persist your default mode directly via the `Agent Mode` option in the `/settings` TUI panel (persisted inside `settings.json` with real-time synchronization).
 
 ## Subcommands
+
+### `agent` (alias: `agents`)
+List available agents and manage custom agents (`v1.1.1+`).
+- `agy agent`: List available agents.
 
 ### `plugin` (alias: `plugins`)
 Manage the capabilities of your agent. Downloaded plugins are stored directly in `~/.gemini/config/` for instant discoverability.
@@ -110,7 +116,7 @@ List available models for CLI sessions.
 > - **Permissions**: You MUST use `--dangerously-skip-permissions` or the command will hang silently waiting for approval.
 > - **First run**: agy may require initial interactive setup before print mode works. If `-p` hangs with zero output on a fresh install, run `agy` interactively first to complete auth/setup.
 > - **Timeout**: Print mode has a default 5-minute timeout (`--print-timeout`). For long-running tasks, increase it: `--print-timeout 30m`.
-> - **Output**: stdout may be buffered. Use `--log-file` if you need to track execution details.
+> - **Output**: stdout may be buffered. Use `--log-file` if you need to track execution details. Print mode properly writes errors to stderr and returns a non-zero exit code if a request fails server-side (`v1.1.1+`). It also supports pasting OAuth authorization codes via the controlling terminal when stdin is consumed (`v1.1.2+`).
 
 ### Spawning Subagents
 You can use `agy` to spawn other agents to handle sub-tasks.
@@ -189,7 +195,7 @@ To manage this:
 - **Permission & Flag Fixes (`v1.0.10+`)**: Escapes regex metacharacters in saved permission rules to prevent infinite loops, fixes environment flag parsing, ensures "ask" permissions in `settings.json` are preserved across configuration writes, and resolves bash mode argument escaping (defaulting shell resolution to PowerShell).
 - **Interactive Permissions Configuration (`/permissions`)**: Added in `v1.0.5`. Allows users to add, edit, or remove permission rules directly inside the TUI. Supports configuring permissions for workspace levels, shared settings, and CLI-specific configuration settings.
 - **Integrated Permissions System**: Integrates CLI permissioning with the rest of the Antigravity system, merging project-level permissions, shared user settings, and CLI-specific configuration rules. In `v1.0.12+`, project-specific configurations (in `~/.gemini/config/projects/`) take precedence over global settings.
-- **Strict Permission Rule Matching (`v1.1.0`)**: "Always Approve" command rules match via exact prefix strings by default. Users must explicitly opt-in to regex matching by prefixing a rule with `regex:`.
+- **Strict Permission Rule Matching (`v1.1.0`)**: "Always Approve" command rules match via exact prefix strings by default. Users must explicitly opt-in to regex matching by prefixing a rule with `regex:`. Nested command substitutions (e.g. `$(dirname ...)`) also respect allowlists (`v1.1.2+`).
 - **Relaxed Redirection Checks (`v1.1.0`)**: Safe commands containing standard output redirection (e.g. `tool > file`) match rules without requiring a separate full-command permission approval.
 - **Workspace URI Verification (`v1.1.0`)**: Normalized file URIs are checked strictly against active workspace directories, resolving false-positive warning prompts for valid in-workspace file creations and reads.
 - **MCP Config & Launch Options**: 
@@ -229,6 +235,7 @@ Version `v1.0.3` adds full support for G1 credits:
   - `shift+n`: Reverse diff cycling navigation in unified diff review mode (`v1.0.12+`).
   - `alt+v`: Windows alternate clipboard paste shortcut for reliable image pasting (`v1.0.15+`).
   - `shift+tab`: Cycle agent execution modes (`default` -> `accept-edits` -> `plan`) (`v1.1.0`).
+  - `/` and `n/N`: In-file keyword search and jump navigation inside the artifact detail viewer (`v1.1.1+`).
   - `alt+j` / `ctrl+k`: UI focus and navigation overrides
 - **Scrolling Shortcuts**: General scrolling (`PageUp`/`PageDown`/`GoToTop`/`GoToBottom`) is fully supported across both Commands and Shortcuts tabs.
 - **Session deletion**: In the `/resume` screen, deleting a conversation is bound to `ctrl+delete` (changed from `ctrl+d` to avoid terminal exit conflicts).
@@ -292,7 +299,7 @@ Quick reference for translating Gemini CLI commands to agy:
 | gemini -p "prompt" | `agy -p "prompt"` | Same semantics |
 | gemini --yolo | `agy --dangerously-skip-permissions` | Longer but same effect |
 | gemini --resume <id> | `agy --conversation <id>` | Different flag name |
-| gemini -o stream-json | N/A | Not available in verified v1.1.0 |
+| gemini -o stream-json | N/A | Not available in verified v1.1.2 |
 | gemini -m <model> | `agy --model <model>` | Supported in v1.0.5+ |
 | gemini --approval-mode plan | `agy --mode plan` | Fully supported since v1.1.0 |
 

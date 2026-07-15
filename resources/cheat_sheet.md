@@ -9,6 +9,7 @@
 | `--conversation <id>` | | Resume specific session |
 | `--dangerously-skip-permissions` | | Auto-approve everything |
 | `--sandbox` | | Restricted execution mode |
+| `--agent <agent>` | | Agent for the current CLI session |
 | `--model <model>` | | Model for the current CLI session |
 | `--mode <mode>` | | Set agent execution mode (`accept-edits`, `plan`) |
 | `--print-timeout <dur>` | | Print mode timeout (default: 5m) |
@@ -21,6 +22,7 @@
 - `agy update` -- Update to latest version
 - `agy changelog` -- See what's new
 - `agy install` -- Configure PATH and shell
+- `agy agents` -- List available agents
 - `agy models` -- List available models for CLI sessions
 - `agy plugin list` -- View installed plugins
 - `agy plugin install <target>` -- Add a plugin (supports `plugin@marketplace`, GitHub subpaths `owner/repo/subpath@branch`, and auto-resolves Git submodules in `v1.0.9+`)
@@ -34,7 +36,7 @@
 | `gemini -p "prompt"` | `agy -p "prompt"` |
 | `--yolo` | `--dangerously-skip-permissions` |
 | `--resume <id>` | `--conversation <id>` |
-| `-o stream-json` | Not available (verified v1.1.0) |
+| `-o stream-json` | Not available (verified v1.1.2) |
 | `-m <model>` | `agy --model <model>` (v1.0.5+) |
 | `--approval-mode plan` | `--mode plan` (v1.1.0+) |
 
@@ -71,7 +73,7 @@
 - **Optimistic Rendering** -- User prompts render instantly to minimize perceived lag (v1.0.6+).
 - **TUI & Shortcuts Updates** (v1.0.8+) -- Replays slash command history (Up arrow), guards against long pastes, redesigns `/resume` picker and `/tasks` detail views, and optimizes `/btw` tokens.
 - **AltScreen Tool Confirmations** (v1.0.11+) -- Expanded view (`ctrl+g`) for tool confirmations. On artifact view, `ctrl+g` opens `$EDITOR` (warns if unsent comments in `v1.0.15+`).
-- **Execution Modes** (v1.1.0+) -- Cycle modes (`default`, `accept-edits`, `plan`) in TUI via `shift+tab` or persist via `Agent Mode` in `/settings`. `/plan` prefix replaces `/planning` and `/fast` is removed.
+- **Execution Modes** (v1.1.0+) -- Cycle modes (`default`, `accept-edits`, `plan`) in TUI via `shift+tab` or persist via `Agent Mode` in `/settings`. `/plan` prefix replaces `/planning` and `/fast` is removed. Default mode respects allowlisted `write_file` permissions (`v1.1.1+`).
 - **Subagents Markdown Definition** (v1.1.0+) -- Custom subagents use Markdown format (`agent.md`) under `~/.gemini/config/`. Supports "always proceeds" auto-approve mode.
 - **Reverse Diff Cycling** (v1.0.12+) -- Press `shift+n` in diff viewer to cycle backwards.
 - **Dynamic Hints & Footer Layouts** (v1.1.0+) -- UI footer hints dynamically adapt to custom `keybindings.json` configurations.
