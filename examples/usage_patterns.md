@@ -179,3 +179,66 @@ agy --project "proj-12345" -p "Check the status" --dangerously-skip-permissions
 # Create a new project for the session
 agy --new-project -i "Let's build a new feature"
 ```
+
+## Pattern 16: Structured NDJSON Output Streaming
+Version 1.1.8 adds `--output-format` (`text`, `json`, `stream-json`) and `--json-schema` to stream typed NDJSON events for automated pipelines and CI/CD.
+
+```bash
+# Stream NDJSON progress events (init, step_update, result) with structured token accounting
+agy -p "Generate a summary of this repo" \
+  --output-format stream-json \
+  --dangerously-skip-permissions
+
+# Enforce a custom JSON schema on the final result output
+agy -p "Extract all API endpoints in this codebase" \
+  --output-format stream-json \
+  --json-schema '{"type":"object","properties":{"endpoints":{"type":"array","items":{"type":"string"}}}}' \
+  --dangerously-skip-permissions
+```
+
+## Pattern 17: Interactive Workspace Code Search
+Version 1.1.3 introduces `/codesearch` (aliases `/cs`, `/search`) for interactive code search across your workspace with regex, literal search, and path globs.
+
+```bash
+# Search using regex (default)
+/codesearch func Handle.*Request
+
+# Exact literal string search
+/codesearch -F "http.StatusOK"
+
+# Restrict search to specific file patterns
+/codesearch f:*.go func NewServer
+```
+
+## Pattern 18: Controlling Model Reasoning Effort
+Version 1.1.5 introduces the `--effort` flag and `/effort` command to toggle reasoning depth for supported models.
+
+```bash
+# Launch session with high reasoning effort
+agy --effort high -p "Design a high-throughput queue system" --dangerously-skip-permissions
+
+# Inside the interactive TUI, inspect or set reasoning level:
+/effort high
+```
+
+## Pattern 19: Custom Markdown Agent Definitions
+Version 1.1.6 supports defining custom agents using Markdown files (`agent.md`) with YAML frontmatter.
+
+Create `~/.gemini/config/agents/reviewer.md`:
+
+```markdown
+---
+name: security-auditor
+description: Specialized security auditing subagent
+mainAgent: false
+subagent: true
+hidden: false
+inheritMcp: true
+commandExecutionPolicy: ask
+model: pro
+---
+
+# Security Auditor Agent
+You are a senior security researcher. Scrutinize input for OWASP Top 10 vulnerabilities.
+```
+

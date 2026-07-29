@@ -1,12 +1,12 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
-version: 1.1.2
+version: 1.1.8
 ---
 
 # Antigravity CLI (agy) Skill
 
-Targets locally installed `agy` v1.1.2.
+Targets locally installed `agy` v1.1.8.
 
 Use this skill to work with the `agy` CLI for coding tasks, multi-agent orchestration, and workspace management.
 
@@ -29,6 +29,9 @@ Key differences from Gemini CLI:
 | Flag | Alias | Description |
 | :--- | :--- | :--- |
 | `--print` | `-p`, `--prompt` | Runs a single prompt non-interactively and prints the response. |
+| `--output-format <fmt>`| | Output format for print mode (`text` (default), `json`, `stream-json`) (`v1.1.8+`). |
+| `--json-schema <schema>`| | Enforce JSON schema (string or file path) on print output (`v1.1.8+`). |
+| `--effort <level>` | | Reasoning effort for the current CLI session (`low`, `medium`, `high`) (`v1.1.5+`). |
 | `--prompt-interactive`| `-i` | Runs an initial prompt interactively and continues the session. |
 | `--continue` | `-c` | Continues the most recent conversation in the current workspace. |
 | `--conversation <id>` | | Resumes a specific conversation by its ID. |
@@ -43,22 +46,20 @@ Key differences from Gemini CLI:
 | `--project <id>` | | Explicitly set project ID for the session (`v1.0.12+`). |
 | `--new-project` | | Create a new project for this session (`v1.0.12+`). |
 
-## Known Limitations (verified with installed v1.1.2)
+## Known Limitations (verified with installed v1.1.8)
 
 > [!CAUTION]
-> This skill is verified against locally installed agy v1.1.2. Several capabilities from Gemini CLI are **not yet available**. Do NOT attempt these flags -- they will fail.
+> This skill is verified against locally installed agy v1.1.8. Several legacy flags from Gemini CLI remain **unsupported**. Do NOT attempt these flags -- they will fail.
 
 | Missing Capability | Gemini CLI Equivalent | Status |
 | :--- | :--- | :--- |
-| JSON/NDJSON streaming output | `-o stream-json` | Not available |
-| Reset workspace context | N/A | Not available (verified v1.1.2) |
+| Reset workspace context | N/A | Not available (verified v1.1.8) |
 | Yolo shorthand | `--yolo` | Use `--dangerously-skip-permissions` |
 | Session resume by flag name | `--resume <id>` | Use `--conversation <id>` |
 | MCP server control | `--allowed-mcp-server-names=` | Not available |
-| Thinking/reasoning level control | `GEMINI_THINKING_LEVEL` env var | Not available |
 | Config home isolation | `GEMINI_CLI_HOME` env var | Not available |
 
-**What this means for automation:** Without NDJSON streaming, you cannot parse tool calls, thinking tokens, session IDs, or usage stats in real time. Print mode returns a single text blob when the agent finishes.
+**Automation & Streaming:** As of `v1.1.8`, `agy -p` fully supports structured NDJSON streaming via `--output-format stream-json`. The stream emits typed `init`, `step_update`, and terminal `result` events with token accounting (including `cache_read_tokens`), `tool_info` (canonical name, args, output), and `subagent_info` for nested agents. Use `--json-schema` to enforce schema constraints on the final output.
 
 ## Execution Modes & Diff Review
 
@@ -198,6 +199,8 @@ To manage this:
 - **Strict Permission Rule Matching (`v1.1.0`)**: "Always Approve" command rules match via exact prefix strings by default. Users must explicitly opt-in to regex matching by prefixing a rule with `regex:`. Nested command substitutions (e.g. `$(dirname ...)`) also respect allowlists (`v1.1.2+`).
 - **Relaxed Redirection Checks (`v1.1.0`)**: Safe commands containing standard output redirection (e.g. `tool > file`) match rules without requiring a separate full-command permission approval.
 - **Workspace URI Verification (`v1.1.0`)**: Normalized file URIs are checked strictly against active workspace directories, resolving false-positive warning prompts for valid in-workspace file creations and reads.
+- **Compound Command Permissions (`v1.1.8+`)**: Exact chained shell commands (such as `git fetch && git rebase`) can be saved as allow-always rules and will not re-prompt on subsequent identical runs.
+- **System Temporary Directory Access (`v1.1.6+`)**: Granted default read access to system temporary directories across platforms without prompting.
 - **MCP Config & Launch Options**: 
   - **MCP URL Support**: Configure MCP servers using URLs inside `mcp_config.json`.
   - **Configurable Launch Timeout**: A configurable timeout for launching MCP servers is supported in `v1.0.7+`. Specify a custom duration or set it to `-1` to disable the timeout completely (placed within the server definition block in `mcp_config.json`).
@@ -206,15 +209,47 @@ To manage this:
 
 ### Interactive Interface & Commands
 
-#### `/statusline` Subcommand
-The statusline command is fully case-insensitive and supports direct subcommand arguments:
-- `/statusline help`: Shows help for configuring custom statuslines.
-- `/statusline delete` / `/statusline reset`: Reverts to the default statusline.
-- `/statusline enable` / `/statusline on`: Enables statusline rendering.
-- `/statusline disable` / `/statusline off`: Disables statusline rendering.
-- **Statusline Optimization**: In `v1.0.5`, statusline layout is improved by merging active tips and artifact statuses on a single line, with truncation to prevent collisions on narrow screens.
-- **Statusline Stacking**: In `v1.0.6+`, a `stack_with_default` flag can be set in the `statusLine` configuration to render both the default status line and custom status line output stacked vertically.
-- **Quota and Mode Info**: In `v1.0.8+`, quota usage and execution mode are rendered in the status line.
+#### `/codesearch` (Aliases: `/cs`, `/search`)
+Added in `v1.1.3`. Interactively search code across your workspace with live streaming results.
+- Interprets queries as regex by default.
+- Use `-F` or `--literal` for exact literal text matching.
+- Filter paths using `f:` or `file:` globs (e.g. `/codesearch f:*.py def main`).
+- Cancel in-flight searches with `Esc` (`v1.1.6+`).
+
+#### Reasoning Effort Control (`/effort` & `--effort`)
+Added in `v1.1.5`. View and adjust the reasoning effort level for supported models.
+- Interactive `/effort` command renders a left/right timeline-gauge picker in the status line.
+- Direct command syntax: `/effort low`, `/effort medium`, `/effort high`.
+- Startup flag: `agy --effort high`.
+
+#### Custom Markdown Agents (`agent.md`)
+Added in `v1.1.6`. Custom agents and subagents are defined using Markdown files (`agent.md`) with YAML frontmatter:
+```yaml
+---
+name: code-reviewer
+description: Rigorous code reviewer
+mainAgent: false
+subagent: true
+hidden: false
+inheritMcp: true
+commandExecutionPolicy: ask
+model: pro
+---
+# System Prompt Header
+Detailed agent prompt goes here...
+```
+Frontmatter supports `model` pinning (`flash`, `pro`, `inherit`), `subagent` toggles, and `commandExecutionPolicy`.
+
+#### Stacked Slash Commands
+Added in `v1.1.4`. Allows prefixing a single prompt with multiple slash commands in chain, executing in order typed:
+```bash
+/plan /grill-me Refactor the database layer
+```
+
+#### `/copy` Enhancements
+Added in `v1.1.6`. The `/copy` command accepts an optional numerical index:
+- `/copy`: Copies the most recent response.
+- `/copy <n>`: Copies the n-th most recent response to clipboard.
 
 #### G1 Credits & `/credits` Panel
 Version `v1.0.3` adds full support for G1 credits:
@@ -227,6 +262,7 @@ Version `v1.0.3` adds full support for G1 credits:
 - **Slash Commands Caret (`>`)**: All user slash commands and interactive shell inputs in message history are rendered with a caret prefix (`>`) to clearly distinguish them from agent-generated output.
 - **Slash Command History (`v1.0.8+`)**: Up arrow key in the TUI prompt editor replays previously entered slash commands.
 - **Paste Guard (`v1.0.8+`)**: A per-line guard replaces extremely long single-line TUI pastes with an expandable placeholder to prevent performance lag.
+- **Copy-on-Select Setting (`v1.1.8+`)**: `copyOnSelect` setting in `/settings` (default on) toggles auto-copying mouse text selections to the clipboard in altscreen mode.
 - **Improved Shortcuts**: The `/help` shortcuts tab sorts all keybindings by their primary key.
   - **New Keybindings**: Additional built-in shortcuts include:
   - `ctrl+r`: Reload / Search history. As of `v1.0.5`, you can open this Artifact Review panel while answering pending questions or tool permission confirmations, preserving your current progress when toggling back.
@@ -299,7 +335,7 @@ Quick reference for translating Gemini CLI commands to agy:
 | gemini -p "prompt" | `agy -p "prompt"` | Same semantics |
 | gemini --yolo | `agy --dangerously-skip-permissions` | Longer but same effect |
 | gemini --resume <id> | `agy --conversation <id>` | Different flag name |
-| gemini -o stream-json | N/A | Not available in verified v1.1.2 |
+| gemini -o stream-json | `agy -p --output-format stream-json` | NDJSON streaming supported in v1.1.8+ |
 | gemini -m <model> | `agy --model <model>` | Supported in v1.0.5+ |
 | gemini --approval-mode plan | `agy --mode plan` | Fully supported since v1.1.0 |
 

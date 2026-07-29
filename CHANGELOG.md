@@ -5,6 +5,93 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2026-07-28
+
+### Added
+- Print mode (`-p` / `--print`) now supports structured, machine-readable output via the `--output-format` flag (`text` (default), `json`, or `stream-json`), so headless runs in CI, eval harnesses, and scripts can consume the CLI's output programmatically.
+- Added the `stream-json` output format: a strongly-typed NDJSON event stream that emits typed `init`, `step_update`, and terminal `result` events with a stable, closed-vocabulary `step_type` discriminator.
+- Added the `--json-schema` flag to enforce a custom JSON schema on structured output, accepting an inline schema string or path to a schema file.
+- Enriched the structured stream with a `tool_info` object for each tool call (canonical tool name, parameters, and output) and a `subagent_info` payload for delegated subagents (`conversation_id` and `log_uri`).
+- Included `cache_read_tokens` accounting in the JSON usage object emitted by `json` and `stream-json`.
+- Added a `copyOnSelect` setting (default on, toggleable in `/settings`) that controls auto-copying mouse text selection to the system clipboard in altscreen rendering mode.
+
+### Changed
+- Improved compound-command permissions so exact chained commands (e.g. `git fetch && git rebase`) can be saved as allow-always rules without re-prompting.
+
+## [1.1.7] - 2026-07-26
+
+### Added
+- Improved permission prompts for compound shell commands so the full command is displayed when any part needs approval.
+
+### Fixed
+- Fixed disabled plugins still running their hooks and contributing customizations.
+- Fixed MCP OAuth against providers that do not strictly follow the spec (such as Salesforce and Atlassian) by relaxing issuer validation and including `refresh_token` grant support.
+- Fixed `/btw` failing with a "parent conversation not found" error on fresh sessions.
+- Fixed clipboard corruption of CJK and non-ASCII text when copying on Windows.
+- Fixed print mode (`-p`) sending prompts before account eligibility check finished.
+
+## [1.1.6] - 2026-07-24
+
+### Added
+- Custom Markdown Agents (`agent.md`): Added support for defining custom agents using Markdown files with YAML frontmatter (`mainAgent`, `subagent`, `hidden`, `inheritMcp`, `commandExecutionPolicy`, `model`) and H1-delimited system prompts. Dynamically defined subagents now also write Markdown format.
+- Added `/copy <n>` argument so `/copy <n>` copies the n-th most recent response to the clipboard.
+- Improved `/codesearch` to render results progressively as they stream in, showing a live count while loading and letting you cancel an in-flight search with `Esc`.
+- Granted default read access to the system temporary directory across all platforms without permission prompts.
+
+### Fixed
+- Fixed switching from custom agents back to the default agent via `/agents`.
+- Fixed crash when a command was blocked by sandbox permissions before output was captured.
+- Fixed artifact viewer escape byte output on non-Kitty terminals.
+- Fixed first keystroke being dropped when opening artifact view.
+- Fixed conversation jitter and input box position during streaming.
+- Fixed headless (`-p`) conversation creation error reporting.
+
+## [1.1.5] - 2026-07-22
+
+### Added
+- Added `/effort` command to view and change reasoning effort via a timeline-gauge picker or direct `/effort <level>`.
+- Added `--effort` flag (`low`, `medium`, `high`) to select model reasoning effort when launching the CLI.
+- Added stable, user-facing model slugs in `/model` picker and `--model` flag.
+- Added `model` option to custom agent frontmatter (`flash`, `pro`, `inherit`).
+- Redesigned `/model` picker to group models by base model with effort timeline gauge and status line effort badge.
+
+### Changed
+- Improved `/settings` panel to be a bounded, scrollable list that renders correctly in short terminals without dropdown flickering.
+- Improved background-task lifecycle management with deterministic startup/shutdown and panic safety.
+
+## [1.1.4] - 2026-07-20
+
+### Added
+- Added support for stacking multiple leading slash commands in a single prompt (e.g., `/plan /grill-me <prompt>`).
+
+### Fixed
+- Fixed permission checks splitting arguments containing quoted shell metacharacters (e.g., `--grep="a|b"`).
+- Fixed file-view and file-search tools failing with invalid UTF-8 errors at truncation boundaries.
+- Fixed scrolling jitter in `/diff` viewer when wrapping lines or expanding comments.
+- Fixed custom agents declaring `subagent: false` from appearing in subagent lists.
+- Fixed headless (`-p` / `--print`) runs to honor persisted `settings.json` policies (permissions, file access, sandbox mode).
+- Fixed `/btw` side-questions leaking into conversation list as duplicate entries.
+- Fixed prompt input handling for custom Enter keybindings.
+
+## [1.1.3] - 2026-07-18
+
+### Added
+- Added `/codesearch` command (aliases `/cs`, `/search`) for interactive regex/literal workspace code search with file inclusion/exclusion globs.
+- Added copy-on-select in no-flickering mode.
+- Added visual indicator at context-compaction boundaries.
+
+### Changed
+- Improved interactive startup latency by loading skills asynchronously.
+- Consolidated directory walks and cached filesystem lookups for customization loading (skills, rules, agents, hooks).
+- Removed padding spaces around inline code blocks.
+
+### Fixed
+- Fixed code-block math parsing corruption ($..$ expansion in shell snippets).
+- Fixed headless (`-p`) runs soft-denying permission confirmation tools with clear stderr notices.
+- Fixed outside-workspace file writes in proceed-in-sandbox mode.
+- Fixed high CPU usage and index rebuild convergence on large conversations.
+- Fixed Linux keyring hangs by skipping keyring when no D-Bus session bus is present.
+- Fixed MCP server response timeout hangs.
 
 ## [1.1.2] - 2026-07-14
 

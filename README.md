@@ -19,8 +19,8 @@ An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the offic
 
 This is a skill file that teaches AI coding agents (Claude Code, Gemini CLI, Codex, Cursor, etc.) how to use the `agy` command-line tool effectively. It covers:
 
-- Complete flag reference for agy v1.1.2
-- Known v1.1.2 limitations (flags that don't exist yet)
+- Complete flag reference for agy v1.1.8
+- Supported capabilities and automation patterns (NDJSON output streaming, reasoning effort control, Markdown agents)
 - Gemini CLI to agy migration guide and flag mapping
 - Best practices for automation and scripting
 - Troubleshooting common issues
@@ -53,7 +53,7 @@ cp SKILL.md ~/.gemini/skills/antigravity-cli/SKILL.md
 
 ## Status
 
-This skill tracks locally installed agy v1.1.2.
+This skill tracks locally installed agy v1.1.8.
 
 ## Support
 
