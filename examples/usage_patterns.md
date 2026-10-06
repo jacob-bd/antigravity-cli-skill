@@ -1,244 +1,269 @@
-# agy CLI Usage Patterns
+# agy CLI Usage Patterns (v1.3.0)
+
+Executable patterns and architectural recipes for automating, scripting, and orchestrating Google's Antigravity CLI.
+
+---
 
 ## Pattern 1: Non-Interactive Code Generation
-Useful for generating snippets or files without manual intervention.
+Run single-prompt code generation headless with auto-approved permissions. Note that in `v1.2.6+`, `--print-timeout` defaults to `0s` (unlimited), running until completion without premature timeouts.
 
 ```bash
-agy -p "Generate a robust python script for data cleaning" --dangerously-skip-permissions
-```
-
-For long-running generation tasks, increase the timeout:
-```bash
-agy -p "Build a full REST API with auth, tests, and docs" \
-  --dangerously-skip-permissions \
-  --print-timeout 30m
-```
-
-## Pattern 2: Context-Aware Refactoring
-Resuming a conversation to apply changes to an existing project.
-
-```bash
-# First, establish context
-agy -i "Analyze this repository for security vulnerabilities" --add-dir .
-
-# Later, apply a fix
-agy -c "Fix the vulnerabilities found in the auth module" --dangerously-skip-permissions
-```
-
-## Pattern 3: Multi-Agent Collaboration
-Using `agy` as a coordinator to delegate tasks to "worker" agents.
-
-```bash
-# Task for the 'Designer' agent
-agy -p "Create a CSS design system for a dark theme" \
-  --dangerously-skip-permissions > design.css
-
-# Task for the 'Developer' agent using the design
-agy -p "Build a landing page using design.css" \
+# Standard non-interactive generation
+agy -p "Generate a resilient Go HTTP server with graceful shutdown" \
   --dangerously-skip-permissions
-```
 
-## Pattern 4: Plugin Management for Specific Tasks
-Extending capabilities on the fly.
-
-```bash
-agy plugin install chrome-devtools
-agy -p "Audit the accessibility of localhost:3000" --dangerously-skip-permissions
-```
-
-## Pattern 5: Migrating from Gemini CLI
-If you have existing Gemini CLI workflows, migrate step by step.
-
-```bash
-# Step 1: Import your Gemini CLI extensions as plugins
-agy plugin import gemini
-
-# Step 2: Verify they imported
-agy plugin list
-
-# Step 3: Update your scripts
-# Before (Gemini CLI):
-#   gemini -p "fix the bug" --yolo
-# After (agy):
-#   agy -p "fix the bug" --dangerously-skip-permissions
-```
-
-## Pattern 6: Multi-Directory Workspace
-Bring in context from multiple directories for cross-project work.
-
-```bash
-agy -i "Compare the API contracts between these two services" \
-  --add-dir ./service-a \
-  --add-dir ./service-b
-```
-
-## Pattern 7: Logging for CI/CD Pipelines
-Capture detailed execution logs for debugging in automated environments.
-
-```bash
-agy -p "Run the test suite and fix any failures" \
+# Explicitly bounded run with graceful partial output on timeout
+agy -p "Run extensive benchmark suite on all crypto routines" \
   --dangerously-skip-permissions \
-  --print-timeout 15m \
-  --log-file /tmp/agy-ci-$(date +%s).log
+  --print-timeout 10m
 ```
 
-## Pattern 8: Managing and Purchasing G1 Credits
-When model usage standard quota is exhausted, you can check credit balance or trigger automatic credit usage.
+---
+
+## Pattern 2: Continuous Multi-Turn Streaming over Stdin/Stdout
+Version `v1.1.15+` supports bidirectional, line-delimited NDJSON streaming via `--input-format stream-json` and `--output-format stream-json`. This allows persistent test harnesses, drivers, and background daemons to keep a continuous session alive without restarting the CLI:
 
 ```bash
-# Open the interactive CLI TUI
-agy
-
-# Once inside the interactive TUI, type `/credits` in the chat prompt
-# to open the credits panel, view G1 credit balance details, and obtain
-# a direct link to purchase more credits.
-```
-
-## Pattern 9: Listing and Specifying Models
-List all available models in the CLI and specify a model when launching a single prompt.
-
-```bash
-# Step 1: List all available models
-agy models
-
-# Step 2: Run a print command using a specific model (e.g. gemini-2.5-pro)
-agy --model gemini-2.5-pro -p "Explain quantum computing in one sentence" --dangerously-skip-permissions
-```
-
-## Pattern 10: Interactive Permissions Configuration
-Allows you to view and modify permission rules directly within the TUI.
-
-```bash
-# Step 1: Open the interactive TUI
-agy
-
-# Step 2: In the chat prompt, type `/permissions`
-# This opens the interactive permission rules manager panel, allowing you
-# to manage workspace, shared settings, and CLI configuration settings.
-```
-
-## Pattern 11: Configuring MCP Launch Timeouts
-If you have a slower MCP server that takes a long time to start or initialize, you can configure or disable its launch timeout.
-
-In `~/.gemini/config/mcp_config.json`, add the `"timeout"` parameter to the specific server configuration:
-
-```json
-{
-  "mcpServers": {
-    "my-slow-server": {
-      "command": "node",
-      "args": ["/path/to/server.js"],
-      "timeout": 30000
-    },
-    "my-unlimited-server": {
-      "command": "python3",
-      "args": ["/path/to/server.py"],
-      "timeout": -1
-    }
-  }
-}
-```
-*Note: Setting `"timeout"` to `-1` disables the launch timeout completely for that server.*
-
-## Pattern 12: Stacked Status Line Configuration
-If you write custom status line indicators using community plugins, you can display both the default Antigravity status line and your custom status line indicators vertically stacked in the TUI.
-
-In `~/.gemini/antigravity-cli/settings.json`, configure the `"statusLine"` block:
-
-```json
-{
-  "statusLine": {
-    "stack_with_default": true
-  }
-}
-```
-
-## Pattern 13: Installing Plugins from GitHub Subpaths
-Version 1.0.7 adds support for installing plugins directly from subpaths within GitHub repositories, including branch resolution. In `v1.0.9+`, plugin installation automatically resolves and initializes Git submodules.
-
-```bash
-# Install a plugin located in a repository subpath on a specific branch
-agy plugin install github.com/owner/repo/subpath@branch-name
-```
-
-## Pattern 14: Using the Built-In Antigravity Guide Skill
-Version 1.0.10 introduces the `antigravity_guide` built-in skill. You can use it to instantly get guide info for Antigravity, the CLI, the IDE, or the SDK from inside a conversation.
-
-```bash
-# Ask the agent to explain a feature using the built-in guide
-agy -p "Using the antigravity_guide, explain how to configure custom statuslines in settings.json" --dangerously-skip-permissions
-```
-
-## Pattern 15: Explicitly Set or Create Projects
-Version 1.0.12 introduces the `--project` and `--new-project` flags to control the project context regardless of the active workspace.
-
-```bash
-# Launch with a specific project ID
-agy --project "proj-12345" -p "Check the status" --dangerously-skip-permissions
-
-# Create a new project for the session
-agy --new-project -i "Let's build a new feature"
-```
-
-## Pattern 16: Structured NDJSON Output Streaming
-Version 1.1.8 adds `--output-format` (`text`, `json`, `stream-json`) and `--json-schema` to stream typed NDJSON events for automated pipelines and CI/CD.
-
-```bash
-# Stream NDJSON progress events (init, step_update, result) with structured token accounting
-agy -p "Generate a summary of this repo" \
+# Launch a continuous streaming agent worker
+agy -p \
+  --input-format stream-json \
   --output-format stream-json \
   --dangerously-skip-permissions
+```
 
-# Enforce a custom JSON schema on the final result output
-agy -p "Extract all API endpoints in this codebase" \
-  --output-format stream-json \
-  --json-schema '{"type":"object","properties":{"endpoints":{"type":"array","items":{"type":"string"}}}}' \
+**Sending turns to stdin:**
+```json
+{"prompt": "Audit src/auth/jwt.go for token replay risks"}
+{"prompt": "Write a patch for jwt.go that enforces jti validation"}
+```
+
+**Receiving structured events on stdout:**
+```json
+{"event": "init", "session_id": "conv_9f81a", "model": "gemini-3.8-pro"}
+{"event": "step_update", "step_type": "tool_call", "tool_info": {"name": "view_file", "parameters": {"AbsolutePath": "/workspace/src/auth/jwt.go"}}}
+{"event": "result", "output": "Successfully implemented JTI replay cache...", "usage": {"prompt_tokens": 1280, "cache_read_tokens": 840, "candidates_tokens": 320}}
+```
+
+---
+
+## Pattern 3: Headless Slash-Command and Skill Execution
+Version `v1.1.9+` automatically expands leading slash commands and installed skills in print mode (`-p`):
+
+```bash
+# Headless run that triggers the code-review skill on the current git diff
+agy -p "/jbd-code-review-skill review the uncommitted changes" \
+  --dangerously-skip-permissions
+
+# Opt out and treat leading slashes as literal text
+agy -p "/not-a-command this is literal text" \
+  --disable-slash-commands \
   --dangerously-skip-permissions
 ```
 
-## Pattern 17: Interactive Workspace Code Search
-Version 1.1.3 introduces `/codesearch` (aliases `/cs`, `/search`) for interactive code search across your workspace with regex, literal search, and path globs.
+---
+
+## Pattern 4: Zero-Turn Inspection of Read-Only Commands
+Version `v1.1.11+` and `v1.1.12+` allow querying read-only slash commands in print mode to extract machine-readable JSON without starting an agent turn, without consuming quota, and without polluting conversation databases:
 
 ```bash
-# Search using regex (default)
-/codesearch func Handle.*Request
+# Check quota buckets and reset windows in JSON
+agy -p "/quota" --output-format json
 
-# Exact literal string search
-/codesearch -F "http.StatusOK"
+# Export token usage and session spend
+agy -p "/usage" --output-format json
 
-# Restrict search to specific file patterns
-/codesearch f:*.go func NewServer
+# Inspect remaining G1 credits
+agy -p "/credits" --output-format json
+
+# List installed skills or active permission rules
+agy -p "/skills" --output-format json
+agy -p "/permissions" --output-format json
 ```
 
-## Pattern 18: Controlling Model Reasoning Effort
-Version 1.1.5 introduces the `--effort` flag and `/effort` command to toggle reasoning depth for supported models.
+---
+
+## Pattern 5: Managing MCP Servers via CLI
+Version `v1.1.16+` introduces dedicated `mcp` subcommands to configure `mcp_config.json` without hand-editing JSON files:
 
 ```bash
-# Launch session with high reasoning effort
-agy --effort high -p "Design a high-throughput queue system" --dangerously-skip-permissions
+# 1. List configured MCP servers
+agy mcp list
 
-# Inside the interactive TUI, inspect or set reasoning level:
-/effort high
+# 2. Add a stdio MCP server
+agy mcp add fs npx -y @modelcontextprotocol/server-filesystem /workspace
+
+# 3. Add an stdio server with environment variables
+agy mcp add --env GITHUB_TOKEN=ghp_secret gh -- docker run -i ghcr.io/github/mcp
+
+# 4. Add an authenticated HTTP/SSE MCP server
+agy mcp add --header "Authorization: Bearer my_api_key" internal-docs https://docs.internal.net/mcp
+
+# 5. Disable and enable servers on the fly
+agy mcp disable internal-docs
+agy mcp enable internal-docs
+
+# 6. Remove a server
+agy mcp remove fs
 ```
 
-## Pattern 19: Custom Markdown Agent Definitions
-Version 1.1.6 supports defining custom agents using Markdown files (`agent.md`) with YAML frontmatter.
+---
 
-Create `~/.gemini/config/agents/reviewer.md`:
+## Pattern 6: Remote Control Background Service
+Version `v1.2.0+` and `v1.2.6+` support managing the Remote Control background daemon:
+
+```bash
+# Register and start the background service with the OS service manager
+agy remote-control start --name "build-server-01"
+
+# Check daemon health, process ID, and active connection status
+agy remote-control status
+
+# Stop and unregister the background service
+agy remote-control stop
+
+# Or launch an interactive CLI session with a temporary tunnel
+agy --remote-control
+```
+
+---
+
+## Pattern 7: Direct Gemini API Key Authentication
+Version `v1.1.13+` allows direct access to Gemini models via API key without interactive OAuth sign-in:
+
+```bash
+# Configure API key and optional custom endpoint
+export GEMINI_API_KEY="AIzaSy..."
+export GOOGLE_GEMINI_BASE_URL="https://generativelanguage.googleapis.com"
+
+# Ensure modelProvider is configured in ~/.gemini/antigravity-cli/settings.json:
+# { "modelProvider": "gemini" }
+
+# Run prompts directly
+agy -p "List 3 advantages of Go over Python" --dangerously-skip-permissions
+```
+
+---
+
+## Pattern 8: One-Shot Model Prompting Mid-Conversation
+Version `v1.1.27+` allows executing a single prompt against another model without altering your session default:
+
+```bash
+# Inside interactive TUI:
+# Runs prompt on claude-3-7-sonnet and automatically reverts back to gemini-3.8-pro next turn
+/model claude-3-7-sonnet Critique this architectural plan from a functional programming viewpoint
+
+# In scripts, select models directly:
+agy --model gemini-3.8-pro -p "High-complexity reasoning task" --dangerously-skip-permissions
+```
+
+---
+
+## Pattern 9: Subagent Messaging & Delegation
+Version `v1.2.9+` adds prompt syntax to route messages directly to subagents:
+
+```bash
+# Inside the TUI prompt, address subagents directly:
+@code-reviewer Check the uncommitted diff in src/controllers/
+
+# In automation, spawn a custom subagent:
+agy --agent security-auditor -p "Scan dependencies in go.mod for CVEs" \
+  --dangerously-skip-permissions
+```
+
+---
+
+## Pattern 10: Enforcing Strict JSON Schemas
+Version `v1.1.8+` and `v1.2.14+` enforce structured output conforming to a JSON schema:
+
+```bash
+# Schema must have "type": "object" at root
+agy -p "Extract all HTTP routes defined in router.go" \
+  --output-format stream-json \
+  --json-schema '{"type":"object","properties":{"routes":{"type":"array","items":{"type":"string"}}},"required":["routes"]}' \
+  --dangerously-skip-permissions
+```
+
+---
+
+## Pattern 11: Custom Markdown Agent Definition
+Define custom agents in `.agents/agents/<name>.md` or `~/.gemini/config/agents/<name>.md`:
 
 ```markdown
 ---
-name: security-auditor
-description: Specialized security auditing subagent
-mainAgent: false
+name: devops-specialist
+description: Infrastructure as Code and CI/CD automation engineer
+mainAgent: true
 subagent: true
 hidden: false
-inheritMcp: true
-commandExecutionPolicy: ask
 model: pro
+commandExecutionPolicy: ask
+inheritCustomizations: true
+rules:
+  - .agents/rules/security-baseline.md
+agents:
+  - terraform-linter
 ---
 
-# Security Auditor Agent
-You are a senior security researcher. Scrutinize input for OWASP Top 10 vulnerabilities.
+# DevOps Specialist Agent
+You are an expert site reliability and automation engineer. Enforce immutable infrastructure, least-privilege IAM policies, and reproducible pipelines.
 ```
 
+Launch with:
+```bash
+agy --agent devops-specialist -i "Review our GitHub Actions workflow"
+```
+
+---
+
+## Pattern 12: Controlling Reasoning Effort
+Version `v1.1.5+` and `v1.2.11+` support multi-tier reasoning effort (`low`, `medium`, `high`, `xhigh`, `max`):
+
+```bash
+# Launch session with maximum reasoning depth
+agy --effort max -p "Formal proof of correctness for lock-free ring buffer" \
+  --dangerously-skip-permissions
+
+# Inside interactive TUI:
+/effort high
+```
+
+---
+
+## Pattern 13: Audio Dictation with Remote Forwarding
+Version `v1.1.21+` provides speech-to-text dictation into the prompt:
+
+```bash
+# On local laptop (client forwarding local microphone):
+agy mic-serve --addr 127.0.0.1:4713
+
+# In remote SSH session:
+# Press F5 or type /voice in prompt to begin dictation
+```
+
+---
+
+## Pattern 14: Handling Headless Errors in CI/CD
+Version `v1.2.6+` and `v1.2.10+` return exit code `3` and print a structured `AGY_ERROR` JSON payload on fatal failures:
+
+```bash
+#!/usr/bin/env bash
+set -eo pipefail
+
+OUTPUT=$(agy -p "Run database migration" --dangerously-skip-permissions 2> /tmp/agy_err.log) || EXIT_CODE=$?
+
+if [ "${EXIT_CODE:-0}" -eq 3 ]; then
+  echo "AGY Fatal Error Detected:"
+  grep "^AGY_ERROR:" /tmp/agy_err.log | jq .
+  exit 1
+fi
+```
+
+---
+
+## Pattern 15: Hot-Reloading Discovered Skills
+Version `v1.2.4+` allows reloading skills without restarting long-running sessions:
+
+```bash
+# Inside interactive TUI prompt:
+/skills reload
+```

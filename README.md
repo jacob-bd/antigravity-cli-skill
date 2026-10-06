@@ -19,11 +19,21 @@ An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the offic
 
 This is a skill file that teaches AI coding agents (Claude Code, Gemini CLI, Codex, Cursor, etc.) how to use the `agy` command-line tool effectively. It covers:
 
-- Complete flag reference for agy v1.1.8
-- Supported capabilities and automation patterns (NDJSON output streaming, reasoning effort control, Markdown agents)
+- Complete flag and subcommand reference for agy v1.3.0
+- Supported capabilities and automation patterns:
+  - Multi-turn bidirectional NDJSON event streaming (`--input-format stream-json` and `--output-format stream-json`)
+  - Five-tier reasoning effort control (`--effort low|medium|high|xhigh|max`)
+  - Native MCP configuration management (`agy mcp add|remove|list|enable|disable`)
+  - Remote control background daemon service (`agy remote-control start|status|stop`)
+  - Loopback microphone streaming over SSH (`agy mic-serve`)
+  - Custom Markdown agent configurations (`agent.md`) with subagent rosters and isolation
+  - Dedicated 20,000-token rule budget and non-recursive manifest discovery
+  - Zero-turn read-only slash command querying (`-p "/quota"`, `-p "/skills"`, etc.)
+  - Kitty terminal graphics rendering for LaTeX math and Mermaid diagrams
+  - Modal Vim editing mode with counted motions and text objects
 - Gemini CLI to agy migration guide and flag mapping
-- Best practices for automation and scripting
-- Troubleshooting common issues
+- Best practices for automation, CI/CD, and multi-agent workflows
+- Troubleshooting common issues and structured error handling (`AGY_ERROR` exit code 3)
 
 ## Background
 
@@ -34,8 +44,8 @@ Google announced at I/O 2026 (May 19) that Gemini CLI is transitioning to Antigr
 | File | Description |
 | :--- | :--- |
 | `SKILL.md` | Main skill definition -- install this in your AI tool |
-| `resources/cheat_sheet.md` | Quick reference card with all flags and migration mapping |
-| `examples/usage_patterns.md` | Common usage patterns with runnable examples |
+| `resources/cheat_sheet.md` | Quick reference card with all flags, subcommands, env vars, and migration mapping |
+| `examples/usage_patterns.md` | 15 production-ready, runnable automation recipes and workflows |
 
 ## Installation
 
@@ -48,15 +58,19 @@ cp SKILL.md ~/.claude/skills/antigravity-cli/SKILL.md
 # Gemini CLI
 cp SKILL.md ~/.gemini/skills/antigravity-cli/SKILL.md
 
+# Antigravity CLI (Global)
+cp -r . ~/.gemini/config/skills/antigravity-cli-skill/
+
 # Or install via Universal Skills Manager if available
 ```
 
 ## Status
 
-This skill tracks locally installed agy v1.1.8.
+This skill tracks locally installed agy v1.3.0.
 
 ## Support
 
 If this skill saves you time or money, you can help support its development. Any support is hugely appreciated. 🙏
 
 <a href="https://buymeacoffee.com/jacobbd"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="42"></a>
+
