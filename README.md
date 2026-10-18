@@ -47,6 +47,7 @@ Google announced at I/O 2026 (May 19) that Gemini CLI is transitioning to Antigr
 | :--- | :--- |
 | `SKILL.md` | Main skill definition -- install this in your AI tool |
 | `resources/cheat_sheet.md` | Quick reference card with all flags, subcommands, env vars, and migration mapping |
+| `resources/delegation_playbook.md` | Guide for AI assistants (Claude Code, Codex, OpenCode) delegating tasks to agy |
 | `resources/agents_and_customization.md` | Custom agent schema, manifests, plugin authoring, skill metadata |
 | `resources/tui_reference.md` | Interactive TUI keybindings, `/diff` and artifact viewers, settings |
 | `examples/usage_patterns.md` | 22 production-ready, runnable automation recipes and workflows |

@@ -260,6 +260,20 @@ In headless `-p` runs:
 - Subagent permission denials are handled strictly without attempting unauthorized workarounds (`v1.2.15+`).
 - Questions asked by subagents and workflow agents are skipped in `-p` runs so the subagent can continue (`v1.3.6+`).
 
+## Delegating Work to agy (Host CLI Integration)
+
+Coding assistants (Claude Code, OpenAI Codex, OpenCode, etc.) can delegate plan reviews, code reviews, and coding tasks to `agy` using headless print mode (`-p`).
+
+Key mechanics:
+- Always pass `--dangerously-skip-permissions` to avoid hanging on interactive prompts.
+- Always scope the target directory with `--add-dir .` (or target path).
+- Use `--mode plan` for read-only plan/architecture reviews.
+- Omit `--mode plan` for code-writing tasks (agy will edit workspace files directly).
+- Capture structured outputs using `--output-format json` (result in `.response`).
+- Iterate on the same task using `--conversation <id>` with delta instructions.
+
+**Read [resources/delegation_playbook.md](resources/delegation_playbook.md)** for complete delegation recipes, background execution patterns, error handling, and MCP/skill integration.
+
 ## Custom Agents & Customization System
 
 Custom agents are Markdown files with YAML frontmatter in `.agents/agents/<name>.md` (project) or `~/.gemini/config/agents/<name>.md` (global), launched with `agy --agent <name>` or delegated to as subagents. Rules (`GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`) get a dedicated 20,000-token budget so they never evict skills, subagents, or MCP tools. Manifests (`skills.json`, `rules.json`, `agents.json`, `plugins.json`) are discovered across every `.agents/` folder up to the Git root. Plugins can ship skills, rules, MCP servers, hooks, and (since `v1.3.3`) subagents via a root `agents.json`.

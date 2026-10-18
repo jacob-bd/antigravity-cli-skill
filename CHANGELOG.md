@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/diff` viewer enhancements (syntax highlighting, folding, navigation, Commit Tree).
 - Exit code `2` for print-mode usage errors and exit code `1` for unknown `--agent` names in `-p` mode (agy v1.3.4+).
 - Usage patterns 16-22: Auto mode, plugin validation in CI, plugin install/audit, agent guard, `/compact`, unattended plan approval, always-loaded MCP tools.
+- Added `resources/delegation_playbook.md` with operational mechanics, recipes, and best practices for host coding assistants (Claude Code, OpenAI Codex CLI, OpenCode) delegating plan reviews, code reviews, and coding tasks to `agy`.
 
 ### Changed
 - Moved custom agent/customization and TUI reference sections into `resources/agents_and_customization.md` and `resources/tui_reference.md` so `SKILL.md` stays under agy's 24 KB skill body limit (validated with `agy plugin validate --strict`).
