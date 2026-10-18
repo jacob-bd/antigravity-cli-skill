@@ -19,7 +19,7 @@ An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the offic
 
 This is a skill file that teaches AI coding agents (Claude Code, Gemini CLI, Codex, Cursor, etc.) how to use the `agy` command-line tool effectively. It covers:
 
-- Complete flag and subcommand reference for agy v1.3.0
+- Complete flag and subcommand reference for agy v1.4.2
 - Supported capabilities and automation patterns:
   - Multi-turn bidirectional NDJSON event streaming (`--input-format stream-json` and `--output-format stream-json`)
   - Five-tier reasoning effort control (`--effort low|medium|high|xhigh|max`)
@@ -31,6 +31,8 @@ This is a skill file that teaches AI coding agents (Claude Code, Gemini CLI, Cod
   - Zero-turn read-only slash command querying (`-p "/quota"`, `-p "/skills"`, etc.)
   - Kitty terminal graphics rendering for LaTeX math and Mermaid diagrams
   - Modal Vim editing mode with counted motions and text objects
+  - Auto mode (`--mode auto`) and on-demand conversation compaction (`/compact`)
+  - Plugin marketplace, `agents.json`, and CI-ready `agy plugin validate --strict --json`
 - Gemini CLI to agy migration guide and flag mapping
 - Best practices for automation, CI/CD, and multi-agent workflows
 - Troubleshooting common issues and structured error handling (`AGY_ERROR` exit code 3)
@@ -45,7 +47,9 @@ Google announced at I/O 2026 (May 19) that Gemini CLI is transitioning to Antigr
 | :--- | :--- |
 | `SKILL.md` | Main skill definition -- install this in your AI tool |
 | `resources/cheat_sheet.md` | Quick reference card with all flags, subcommands, env vars, and migration mapping |
-| `examples/usage_patterns.md` | 15 production-ready, runnable automation recipes and workflows |
+| `resources/agents_and_customization.md` | Custom agent schema, manifests, plugin authoring, skill metadata |
+| `resources/tui_reference.md` | Interactive TUI keybindings, `/diff` and artifact viewers, settings |
+| `examples/usage_patterns.md` | 22 production-ready, runnable automation recipes and workflows |
 
 ## Installation
 
@@ -66,7 +70,7 @@ cp -r . ~/.gemini/config/skills/antigravity-cli-skill/
 
 ## Status
 
-This skill tracks locally installed agy v1.3.0.
+This skill tracks locally installed agy v1.4.2.
 
 ## Support
 

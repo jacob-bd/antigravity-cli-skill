@@ -1,4 +1,4 @@
-# agy CLI Usage Patterns (v1.3.0)
+# agy CLI Usage Patterns (v1.4.2)
 
 Executable patterns and architectural recipes for automating, scripting, and orchestrating Google's Antigravity CLI.
 
@@ -266,4 +266,97 @@ Version `v1.2.4+` allows reloading skills without restarting long-running sessio
 ```bash
 # Inside interactive TUI prompt:
 /skills reload
+```
+
+---
+
+## Pattern 16: Auto Mode for Hands-Off Refactors
+Version `v1.3.5+` adds `--mode auto`: file edits and safe commands are approved without prompting, irreversible actions still ask, and commands that would leave the sandbox are reviewed by a separate agent. Available on macOS and Linux:
+
+```bash
+# Start an interactive Auto mode session
+agy --mode auto -i "Rename the Config struct to Settings across the repo and fix the build"
+
+# Inside the TUI, press Shift+Tab to cycle modes, or set Agent Mode in /config
+```
+
+---
+
+## Pattern 17: Validating Plugins in CI
+Version `v1.4.0+` and `v1.4.1+` validate a plugin (manifest, skills, subagents, rules) with the same rules the loader uses. `--strict` fails on warnings and `--json` emits a machine-readable report:
+
+```bash
+#!/usr/bin/env bash
+set -eo pipefail
+
+# Fail the pipeline on any error or warning
+agy plugin validate ./my-plugin --strict
+
+# Capture a JSON report for annotations
+agy plugin validate ./my-plugin --strict --json > plugin-report.json || EXIT_CODE=$?
+jq . plugin-report.json
+exit "${EXIT_CODE:-0}"
+```
+
+---
+
+## Pattern 18: Installing and Auditing Plugins
+Version `v1.3.2+` adds the official marketplace, and `v1.3.4+` adds `--json` to `plugin list`:
+
+```bash
+# Install from the official marketplace without opening the CLI
+agy plugin install <plugin-name>@antigravity-plugins-official
+
+# Audit what's installed (marketplace and imported), including enabled state
+agy plugin list --json | jq '.'
+
+# Inside the TUI, browse and manage interactively
+/plugin
+```
+
+---
+
+## Pattern 19: Failing Fast on a Misspelled Agent
+Version `v1.3.4+` makes `--agent` exit `1` in headless runs when the name matches no agent, instead of silently running the default agent. Use it as a guard in scripts:
+
+```bash
+if ! agy --agent security-auditor -p "Scan go.mod for CVEs" --dangerously-skip-permissions; then
+  echo "agy failed (unknown agent or runtime error); available agents:"
+  agy agent --output-format json | jq '.'
+  exit 1
+fi
+```
+
+---
+
+## Pattern 20: Compacting a Long Conversation
+Version `v1.3.5+` adds `/compact` to free up the context window on demand:
+
+```bash
+# Inside the interactive TUI:
+/compact                          # Summarize the conversation and end the turn
+/compact Now continue with the DB migration   # Summarize, then answer the message
+```
+
+---
+
+## Pattern 21: Unattended Plan Approval
+Since `v1.3.2`, `--dangerously-skip-permissions` no longer auto-approves implementation plans in `/plan` mode. For unattended runs, set `Artifact Review` in `/config` so plans and other artifacts proceed automatically, and keep the flag only for tool permission prompts:
+
+```bash
+agy --mode plan -i "Plan the migration from REST to gRPC" --dangerously-skip-permissions
+```
+
+---
+
+## Pattern 22: Always-Loaded MCP Tools
+Version `v1.3.3+` lets an MCP server mark a tool as always loaded so the agent gets it directly instead of discovering it on demand. In the server's `tools/list` response:
+
+```json
+{
+  "name": "search_docs",
+  "description": "Search internal documentation",
+  "inputSchema": { "type": "object", "properties": { "query": { "type": "string" } } },
+  "_meta": { "antigravity/alwaysLoad": true }
+}
 ```

@@ -1,12 +1,12 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
-version: 1.3.0
+version: 1.4.2
 ---
 
 # Antigravity CLI (agy) Skill
 
-Targets locally installed `agy` v1.3.0 (with complete feature coverage through v1.2.17).
+Targets `agy` v1.4.2.
 
 Use this skill to guide AI coding agents, automate CI/CD pipelines, orchestrate multi-agent swarms, configure Model Context Protocol (MCP) servers, manage custom Markdown agents, and control workspace environments with the `agy` CLI.
 
@@ -37,11 +37,11 @@ Key architectural characteristics:
 | `--prompt-interactive` | `-i` | Runs an initial prompt interactively in the TUI and continues the session. | v1.0.0+ |
 | `--continue` | `-c` | Continues the most recent conversation in the current workspace (with parent/child directory fallback). | v1.0.0+, v1.2.1+ |
 | `--conversation <id>` | | Resumes a specific conversation by its unique ID. | v1.0.0+ |
-| `--dangerously-skip-permissions` | | **CRITICAL FOR AUTOMATION.** Auto-approves all tool permission requests without interactive prompts. | v1.0.0+ |
+| `--dangerously-skip-permissions` | | **CRITICAL FOR AUTOMATION.** Auto-approves all tool permission requests without interactive prompts. Since v1.3.2 it no longer auto-approves implementation plans in `/plan` mode; use `Artifact Review` in `/config` for that. | v1.0.0+, v1.3.2+ |
 | `--sandbox` | | Runs terminal operations in a secure restricted sandbox. | v1.0.1+ |
-| `--agent <agent>` | | Specifies a custom agent (Markdown or built-in) for the current CLI session. | v1.1.1+, v1.2.11+ |
-| `--model <model>` | | Model slug or identifier for the current CLI session. | v1.0.5+, v1.1.22+ |
-| `--mode <mode>` | | Sets agent execution mode: `default` (request review), `accept-edits`, or `plan`. | v1.1.0+ |
+| `--agent <agent>` | | Specifies a custom agent (Markdown or built-in) for the current CLI session. An unknown name makes headless `-p` runs exit `1` and list available agents; interactive sessions show an `Agent Not Found` warning and fall back to the default agent. | v1.1.1+, v1.2.11+, v1.3.4+ |
+| `--model <model>` | | Model slug or identifier for the current CLI session. A base model name works without `--effort` (the CLI picks the model's default thinking level). | v1.0.5+, v1.1.22+, v1.3.4+ |
+| `--mode <mode>` | | Sets agent execution mode: `default` (request review), `accept-edits`, `auto` (approves edits and safe commands, still prompts before irreversible actions), or `plan`. | v1.1.0+, v1.3.5+ |
 | `--print-timeout <dur>` | | Timeout for print mode. **Default is `0s` (unlimited)** — runs until the turn completes. When set, a mid-turn expiration returns partial output and exits 0 with a stderr warning. | v1.1.28+, v1.2.6+ |
 | `--add-dir <path>` | | Adds a directory to the workspace scope (repeatable). | v1.0.0+ |
 | `--project <id\|name>` | | Explicitly sets the project ID or project name for the session. | v1.0.12+, v1.1.18+ |
@@ -79,6 +79,9 @@ agy mcp remove fs
 - URLs starting with `http://` or `https://` automatically infer `--type http`.
 - Use `--` before the command if any argument begins with a dash `-`.
 - Plugin MCP servers are automatically namespaced as `<plugin>_<server>` to prevent name collisions (`v1.2.2+`).
+- MCP servers can mark a tool as always loaded by setting `_meta: {"antigravity/alwaysLoad": true}` on it in their `tools/list` response, so the agent gets it directly instead of discovering it on demand (`v1.3.3+`).
+- Plugin MCP servers can use variables in request headers (e.g. `"Authorization": "Bearer ${TOKEN}"`); they are resolved to your configured values (`v1.4.0+`).
+- If an MCP server process exits unexpectedly, `/mcp` marks it `Error` instead of `Ready` (`v1.4.1+`).
 
 ### 2. `agy remote-control` (Remote Daemon Management)
 Added in `v1.2.0+` and `v1.2.6+`. Manages the background Remote Control service registered with your operating system's service manager (systemd, launchd, or background process):
@@ -133,10 +136,12 @@ agy models --output-format json
 ### 6. `agy plugin` / `agy plugins`
 Manage agent plugins (stored in `~/.gemini/config/plugins/`):
 ```bash
-# List installed plugins
+# List installed plugins (marketplace and imported) with version and enabled state
 agy plugin list
+agy plugin list --json
 
-# Install from marketplace or GitHub repo subpaths with branch resolution
+# Install from the official marketplace, another marketplace, or GitHub repo subpaths with branch resolution
+agy plugin install <plugin-name>@antigravity-plugins-official
 agy plugin install security-auditor@marketplace
 agy plugin install github.com/owner/repo/plugins/analyzer@main
 
@@ -148,9 +153,17 @@ agy plugin import claude
 agy plugin enable <name>
 agy plugin disable <name>
 
-# Validate plugin definition manifest
+# Validate a plugin directory or its plugin.json
 agy plugin validate ./my-plugin
+
+# CI-friendly: fail on warnings and emit a machine-readable report
+agy plugin validate ./my-plugin --strict --json
 ```
+
+*Notes:*
+- `agy plugin list --json` added in `v1.3.4+`; it lists every installed plugin, not only imported ones.
+- `agy plugin validate` (`v1.4.0+`, expanded in `v1.4.1+`) checks a plugin with the same rules the CLI uses to load it, including its `plugin.json` (unknown fields with "did you mean" hints, invalid names, components misplaced inside `.antigravity-plugin/`), skills, subagents, and rules. Each error and warning is reported with its file and line.
+- Inside the TUI, `/plugin` (`v1.3.2+`) opens the interactive manager for the official marketplace (browse, install, `install`/`uninstall`/`enable`/`disable`/`list`, or `+ Install from local directory...`). Plugin names and manifests are case-insensitive (`v1.3.6+`).
 
 ### 7. `agy install`
 Configures environment paths and shell configuration profiles (`.zshrc`, `.bashrc`):
@@ -233,7 +246,8 @@ agy -p "Extract all exported functions in auth.go" \
 ### 5. Exit Codes & Structured Error Reporting
 The `agy` CLI uses distinct exit codes to simplify automation error handling:
 - **`0`**: Success, or graceful partial completion when `--print-timeout` expires.
-- **`1`**: Startup configuration errors, invalid command flags, malformed `--json-schema`.
+- **`1`**: Startup configuration errors, invalid command flags, malformed `--json-schema`, or an unknown `--agent` name in `-p` mode (`v1.3.4+`).
+- **`2`**: Print-mode usage errors, such as combining `--print` with `--prompt-interactive` (`v1.3.4+`).
 - **`3`**: Fatal agent or model API error (`v1.2.6+`, `v1.2.10+`). When exit code 3 is returned, the CLI outputs a structured JSON error line on stderr:
   ```text
   AGY_ERROR: {"canonical_status": "RESOURCE_EXHAUSTED", "error_code": 429, "retryable": false, "error_id": "err_quota_exceeded"}
@@ -241,120 +255,22 @@ The `agy` CLI uses distinct exit codes to simplify automation error handling:
 
 ### 6. Non-Interactive Autonomous Decision Making
 In headless `-p` runs:
-- Implementation plan reviews (`--mode plan`) are approved automatically without blocking (`v1.1.28+`).
+- Implementation plan reviews (`--mode plan`) settle without blocking (`v1.1.28+`). For unattended interactive plan approval, set `Artifact Review` in `/config` (`--dangerously-skip-permissions` no longer implies it since `v1.3.2`).
 - User confirmation questions (`ask_question`) auto-settle choices autonomously rather than hanging (`v1.1.12+`).
 - Subagent permission denials are handled strictly without attempting unauthorized workarounds (`v1.2.15+`).
+- Questions asked by subagents and workflow agents are skipped in `-p` runs so the subagent can continue (`v1.3.6+`).
 
-## Custom Markdown Agents (`agent.md`)
+## Custom Agents & Customization System
 
-Antigravity CLI uses Markdown files with YAML frontmatter to define custom primary agents and specialized subagents (`v1.1.6+` through `v1.2.5+`).
+Custom agents are Markdown files with YAML frontmatter in `.agents/agents/<name>.md` (project) or `~/.gemini/config/agents/<name>.md` (global), launched with `agy --agent <name>` or delegated to as subagents. Rules (`GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`) get a dedicated 20,000-token budget so they never evict skills, subagents, or MCP tools. Manifests (`skills.json`, `rules.json`, `agents.json`, `plugins.json`) are discovered across every `.agents/` folder up to the Git root. Plugins can ship skills, rules, MCP servers, hooks, and (since `v1.3.3`) subagents via a root `agents.json`.
 
-### Storage Locations
-- **Project Agents**: `.agents/agents/<name>.md` (automatically discovered in active workspace).
-- **Global Agents**: `~/.gemini/config/agents/<name>.md`.
+**Read [resources/agents_and_customization.md](resources/agents_and_customization.md)** for the full agent schema, frontmatter fields, subagent messaging (`@<name>`), manifest scanning rules, plugin authoring, and skill metadata/hot reloading.
 
-### Complete Agent Schema
-```markdown
----
-name: backend-architect
-description: Senior backend systems engineer specialized in Go and distributed systems
-mainAgent: true
-subagent: true
-hidden: false
-model: pro
-commandExecutionPolicy: ask
-inheritCustomizations: true
-excludeDefaultComponents: false
-rules:
-  - .agents/rules/go-standards.md
-agents:
-  - database-specialist
-  - test-engineer
----
+## Interactive Interface (TUI)
 
-# Backend Architect System Prompt
-You are a Staff Software Engineer. Focus on high-throughput architecture, clean concurrency models, and resilient error recovery.
-```
+Key interactive features: modal Vim editing, `/model <name> [prompt]` one-shot switching, `/config` with `←`/`→` value cycling, `alt+m` opposite-send, `/compact [message]` on-demand compaction, `/diff` viewer (highlighting, folding, Commit Tree), artifact viewer with Kitty graphics, `/copy`, `/resume` grouping, `/skills reload`, and OSC 7501 terminal status (`AGY_CLI_OSC7501`).
 
-### Frontmatter Fields Reference
-- `name` *(string)*: Unique identifier.
-- `description` *(string)*: Human-readable description shown in `/agents`.
-- `mainAgent` *(boolean)*: If `true`, agent can be launched directly via `agy --agent <name>`.
-- `subagent` *(boolean)*: If `true`, agent can be delegated to by other agents.
-- `hidden` *(boolean)*: If `true`, hides the agent from `/agents` picker menus.
-- `model` *(string)*: Model tier (`flash`, `pro`, `inherit`) or explicit model slug.
-- `commandExecutionPolicy` *(string)*: Tool execution policy (`ask`, `allow`).
-- `inheritCustomizations` *(boolean)*: Master switch to inherit ambient skills, rules, and plugins (`v1.1.14+`).
-- `excludeDefaultComponents` *(boolean)*: Opts out of default prompt sections and baseline tools (`v1.2.1+`).
-- `rules` *(array of strings)*: Explicit rule file paths applied unconditionally (`v1.1.15+`).
-- `agents` *(array of strings)*: Explicit subagent dependencies declared for this agent (`v1.1.27+`).
-
-### Subagent Orchestration & Messaging
-- **Direct Subagent Messaging Syntax (`v1.2.9+`)**: In the prompt, type `@<subagent-name> <instruction>` to dispatch tasks directly to a specific subagent with shell-style autocomplete.
-- **Roster Auto-Injection (`v1.2.5+`)**: Any custom agent declaring `invoke_subagent` in its tools automatically receives the full subagent catalog and usage instructions in its system prompt.
-- **Built-in Image Generator (`v1.2.16+`)**: The agent automatically delegates visual asset creation to the built-in `image-generator` subagent with up to 3 automatic verification iterations.
-- **Isolated Worktrees (`v1.2.10+`)**: Subagent Git operations are isolated in `worktrees/` inside the application data directory to prevent workspace collision.
-
-## Customization System & Token Budgeting
-
-### Dedicated 20,000-Token Rule Budget (`v1.2.7+`)
-User and workspace rules (`GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`) are allocated a dedicated 20,000-token budget. Rules are truncated cleanly along newline boundaries, ensuring large rule sets **never evict skills, workflows, subagents, or MCP tools**.
-
-### Manifest Directory Scanning Rules (`v1.2.10+`)
-Directory paths in `skills.json`, `rules.json`, `agents.json`, and `plugins.json` load only items located directly inside the directory (matching `.agents/skills/` behavior). To load nested sub-items, explicitly specify them in `include_only`:
-```json
-{
-  "path": "shared_skills",
-  "include_only": ["security/vuln-scanner", "compliance/license-check"]
-}
-```
-
-### Hierarchical Configuration Loading (`v1.2.16+`)
-Manifests (`skills.json`, `rules.json`, etc.) are discovered and merged across every `.agents/` folder between the current working directory and the project Git root.
-
-### Skill Metadata & Hot Reloading
-- **Skill Visual Branding (`v1.1.20+`)**: Add `metadata.icon` (e.g. `icon: 🛡️`) in `SKILL.md` frontmatter to render icons across `/skills` and autocomplete popups.
-- **Silent Skills (`v1.1.12+`)**: Add `disable-slash-command: true` in `SKILL.md` frontmatter to keep a skill model-invocable without cluttering the interactive `/` slash command menu.
-- **Live Reload (`v1.2.4+`)**: Run `/skills reload` to reload all skills and commands dynamically without restarting the CLI session.
-
-## Interactive Interface, Keybindings & Navigation
-
-### 1. Modal Vim Editing Mode
-Added in `v1.1.11+` and expanded in `v1.2.9+` and `v1.2.12+`. Configure in `/settings` under `Editor Mode` -> `Vim`:
-- **Modes**: Normal, Insert, Visual, Visual Line. Mode status badge rendered in status line.
-- **Motions & Counts**: Full support for count multipliers (e.g. `3dw`, `2d3w`, `3dd`, `3x`, `[count]G`, `2di(`).
-- **Submissions**: Submit directly from Normal mode via `Ctrl+S` or `Ctrl+Enter`.
-- **Insert First Option**: Opens prompt in Insert mode where bare `Enter` submits and `Shift+Enter` / `Ctrl+J` inserts newlines.
-- **Keybinding scopes**: Full customization in `keybindings.json` under `vim.*`.
-
-### 2. One-Shot Model Switching (`/model`)
-Added in `v1.1.22+` and `v1.1.27+`:
-- Switch default model: `/model <name>`.
-- **One-shot execution**: `/model <name> <prompt>` executes a single turn using `<name>` and automatically reverts back to the original model on the subsequent turn.
-
-### 3. Settings Fast Navigation (`/config` & `/settings`)
-- As of `v1.2.16+`, press `←` / `→` arrow keys on any highlighted setting to cycle values immediately without opening dropdown menus.
-- **Queued Messages (`v1.2.14+`)**: Configure `"queuedMessages": "queue"` (default) or `"send-immediately"` to interrupt the active turn when follow-up messages are entered.
-- **Verbosity Modes (`v1.2.10+`)**:
-  - `high`: Full tool calls, parameter payloads, and thoughts.
-  - `medium`: Groups related tool calls into concise summaries (e.g. `Explored 14 files`) while preserving command outputs.
-  - `low`: Minimal output with token metric tables.
-
-### 4. Artifact Detail Viewer
-- **Inline Kitty Graphics (`v1.2.7+`)**: Renders LaTeX formulas (`$$...$$`, fenced `latex`/`math`) and Mermaid diagrams directly in the terminal viewport on Kitty-compatible terminals.
-- **Display Modes (`m`)**: Press `m` in the artifact viewer to cycle between Image, Unicode ASCII fallback, and Raw source.
-- **Diagram Panning**: Use `Left` / `Right` arrow keys to horizontally pan oversized diagrams.
-- **Outline Navigation (`t`)**: Press `t` to open a table-of-contents outline and jump directly to sections (`v1.1.12+`).
-- **Half-page scrolling**: Use `Ctrl+D` and `Ctrl+U` (`v1.1.26+`).
-- **External Editor**: Press `Ctrl+G` to open the artifact in `$EDITOR`.
-
-### 5. Response & Content Clipboard (`/copy`)
-- `/copy`: Copies the most recent response.
-- `/copy <n>`: Copies the n-th most recent response (`v1.1.6+`).
-- `/copy btw`: Copies the active `/btw` side-question response (`v1.2.3+`).
-
-### 6. Workspace Grouping in `/resume`
-Toggle between a flat list and conversations grouped by directory using `Ctrl+F` (`v1.1.25+`). Persist the default with `"pickerGrouping": "workspace"` in `settings.json`.
+**Read [resources/tui_reference.md](resources/tui_reference.md)** for keybindings, display modes, verbosity levels, and viewer details.
 
 ## Security, Sandbox & Permissions
 
@@ -363,11 +279,24 @@ Toggle between a flat list and conversations grouped by directory using `Ctrl+F`
 - **System Temporary Directories (`v1.1.9+`)**: Automatic read and write access is granted to system temp directories (`/tmp`, `$TMPDIR`) without permission prompts.
 - **Artifacts and Scratch Directories (`v1.2.10+`)**: Sandboxed commands have full read/write access to conversation artifact and scratch directories.
 - **URL Reading (`v1.1.28+`)**: URL fetch tools default to prompting for confirmation before fetching external web pages.
+- **macOS Application Support (`v1.3.3+`)**: `~/Library/Application Support` is blocked by default (apps keep credentials there); allow it explicitly in sandbox rules if needed.
+- **Non-Interactive VCS Editors (`v1.3.6+`)**: Agent commands set `GIT_EDITOR`, `HGEDITOR`, `JJ_EDITOR` to `false` and `PAGER`, `GIT_PAGER`, `JJ_PAGER` to `cat`, so `git commit` without `-m` fails fast instead of hanging.
 
 ### Permission Allowlisting Rules
 - **Subcommand Pinning**: Permission suggestions for script runners (`npm run <script>`, `go vet`, `repo status`, `jj config`) pin the specific subcommand so approving one task does not open access to arbitrary scripts (`v1.1.21+`, `v1.2.9+`, `v1.2.15+`).
 - **Compound Shell Commands (`v1.1.8+`)**: Exact chained commands (e.g. `git fetch && git rebase`) can be saved as allow-always rules.
 - **Rule Syntax**: Rules match exact command prefixes by default. Opt into regex pattern matching by prefixing the rule with `regex:`.
+
+### Auto Mode (`--mode auto`, `v1.3.5+`)
+Approves file edits and safe commands without asking; still prompts before irreversible actions. Commands that would leave the sandbox are reviewed by a separate agent first (`v1.3.6+`: allows the workspace's own format/lint/fix commands, blocks uploads of sensitive data).
+
+```bash
+# Launch a session in Auto mode
+agy --mode auto -i "Refactor the auth package and fix any lint errors"
+
+# Or switch inside the TUI: Shift+Tab cycles modes, or set Agent Mode in /config
+```
+*Availability:* macOS and Linux (Windows support is pending).
 
 ## Complete Environment Variables Reference
 
@@ -383,10 +312,13 @@ Toggle between a flat list and conversations grouped by directory using `Ctrl+F`
 | `AGY_CLI_DISABLE_ESCAPE_SEQUENCE_OPTIMIZATIONS` | Bypasses dirty-rectangle rendering optimizations for specialized terminal emulators. | v1.1.19+ |
 | `AGY_CLI_CMD_OUTPUT_PERCENTAGE` | Configures max percentage height of command outputs in the TUI. | v1.0.11+ |
 | `ANTIGRAVITY_CLI_ALIAS` | Overrides the detected binary executable name. | v1.0.0+ |
+| `AGY_CLI_OSC7501` | `on` / `off` to force or disable OSC 7501 terminal status reporting. | v1.4.0+ |
+| `AGY_CLI_OSC7501_MESSAGES` | Set to `brief` to show only the status, without pending command or question details. | v1.4.0+ |
+| `AGY_ADC_AUTH` | ADC sign-in for Business accounts (Claude Opus 5.5 / Sonnet 5.5 available, telemetry off, Remote Control unsupported). | v1.3.3+, v1.3.6+, v1.4.1+ |
 
 ## Gemini CLI Flag & Feature Translation
 
-| Gemini CLI | agy CLI v1.3.0 Equivalent | Notes |
+| Gemini CLI | agy CLI v1.4.2 Equivalent | Notes |
 | :--- | :--- | :--- |
 | `gemini -p "prompt"` | `agy -p "prompt"` | Now auto-expands leading slash commands and skills. |
 | `gemini --yolo` | `agy --dangerously-skip-permissions` | Complete tool auto-approval. |
@@ -395,12 +327,14 @@ Toggle between a flat list and conversations grouped by directory using `Ctrl+F`
 | `gemini -o stream-json` | `agy -p --output-format stream-json` | Strongly typed NDJSON event stream with token stats. |
 | `N/A` | `agy -p --input-format stream-json` | Stdin NDJSON stream for multi-turn continuous runner. |
 | `gemini -m <model>` | `agy --model <model>` | Explicit model selection. |
-| `gemini --approval-mode plan` | `agy --mode plan` | Replaces `/planning` mode. Auto-approved in headless `-p`. |
+| `gemini --approval-mode plan` | `agy --mode plan` | Replaces `/planning` mode. |
+| `gemini --approval-mode auto_edit` | `agy --mode accept-edits` or `agy --mode auto` | `auto` (v1.3.5+) also approves safe commands. |
 | `gemini extensions list` | `agy plugin list` | Managed via plugin subsystem. |
 | `gemini extensions install`| `agy plugin install <target>` | Supports marketplaces and GitHub subpaths. |
 | `N/A` | `agy plugin import gemini` | One-click migration of Gemini extensions to plugins. |
 | `N/A` | `agy mcp add\|list\|remove` | Built-in CLI management for MCP servers. |
 | `N/A` | `agy remote-control start` | OS-registered background remote service daemon. |
+| `N/A` | `agy plugin validate <path> --strict --json` | CI-ready plugin validation (v1.4.0+). |
 
 ## Troubleshooting & Failure Recovery
 
@@ -410,4 +344,8 @@ Toggle between a flat list and conversations grouped by directory using `Ctrl+F`
 - **Persistent Workspace State**: Remember that `agy` maintains internal workspace mappings. `cd`-ing into a directory does not automatically rebind the active project. Always pass `--add-dir .` or `--project <id|name>` when scoping is required.
 - **Stale OAuth Credentials**: If enterprise or Google Cloud tokens expire or encounter clock skew, run `/logout` and `/login` to clear cached tokens.
 - **Subagent Deadlocks**: Subagents respect permission boundaries. If a subagent lacks permissions in autonomous mode, it halts rather than attempting workarounds. Run with proper allowlisting in `settings.json` or pass `--dangerously-skip-permissions`.
+- **Hung Model Requests**: A model connection with no data for 5 minutes is canceled and retried (`v1.3.6+`), with at most 30 seconds between retries (`v1.3.4+`). Socket disconnects (laptop sleep, Wi-Fi change) are retried too (`v1.4.1+`).
+- **Plan Not Auto-Approved**: `/plan` waiting for review despite `--dangerously-skip-permissions` is intended since `v1.3.2`; set `Artifact Review` in `/config`.
+- **`Eligibility check failed` at Launch**: Fixed in `v1.4.0`; run `agy update`.
+- **Plugin Doesn't Load**: Run `agy plugin validate <path> --strict` for file and line level errors (`v1.4.0+`).
 - **Plugin MCP Collisions**: If two plugins define conflicting MCP server names, the CLI automatically namespaces them as `<plugin>_<server>`. Reference them using their prefixed identifier.

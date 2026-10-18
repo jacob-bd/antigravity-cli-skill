@@ -1,4 +1,4 @@
-# agy CLI Quick Reference (v1.3.0)
+# agy CLI Quick Reference (v1.4.2)
 
 ## All Command-Line Flags
 | Flag | Short | What it does | Added / Updated |
@@ -12,11 +12,11 @@
 | `--prompt-interactive`| `-i` | Interactive mode with initial prompt | v1.0.0+ |
 | `--continue` | `-c` | Continue most recent conversation (with parent/child dir fallback) | v1.0.0+, v1.2.1+ |
 | `--conversation <id>` | | Resume specific session by ID | v1.0.0+ |
-| `--dangerously-skip-permissions` | | Auto-approve all tool permission prompts (crucial for headless scripts) | v1.0.0+ |
+| `--dangerously-skip-permissions` | | Auto-approve all tool permission prompts (crucial for headless scripts); no longer auto-approves `/plan` plans | v1.0.0+, v1.3.2+ |
 | `--sandbox` | | Restricted terminal execution mode | v1.0.1+ |
-| `--agent <agent>` | | Agent for current session (Markdown or built-in) | v1.1.1+ |
-| `--model <model>` | | Model slug or tier for current session | v1.0.5+, v1.1.22+ |
-| `--mode <mode>` | | Set agent execution mode (`default`, `accept-edits`, `plan`) | v1.1.0+ |
+| `--agent <agent>` | | Agent for current session (Markdown or built-in); unknown name exits `1` in `-p` | v1.1.1+, v1.3.4+ |
+| `--model <model>` | | Model slug or tier for current session (`--effort` optional) | v1.0.5+, v1.1.22+, v1.3.4+ |
+| `--mode <mode>` | | Set agent execution mode (`default`, `accept-edits`, `auto`, `plan`) | v1.1.0+, v1.3.5+ |
 | `--print-timeout <dur>`| | Print mode timeout (default: `0s` / unlimited; mid-turn returns partial) | v1.1.28+, v1.2.6+ |
 | `--add-dir <path>` | | Add directory to workspace (repeatable) | v1.0.0+ |
 | `--project <id\|name>` | | Explicitly set project ID or project name | v1.0.12+, v1.1.18+ |
@@ -35,7 +35,8 @@
 - `agy mic-serve` -- Serve local microphone over loopback/SSH (`--addr`) for `/voice`
 - `agy agent` / `agy agents` -- List available agents (supports `--output-format json|stream-json`)
 - `agy models` -- List available models (supports `--output-format json|stream-json`)
-- `agy plugin list` -- View installed plugins
+- `agy plugin list [--json]` -- View installed plugins (`--json` for machine-readable output)
+- `agy plugin validate [path] [--strict] [--json]` -- Validate a plugin like the loader does (`--strict` fails on warnings)
 - `agy plugin install <target>` -- Install plugin (`name@marketplace` or `owner/repo/subpath@branch`)
 - `agy plugin import gemini` -- Migrate legacy Gemini CLI extensions
 - `agy plugin import claude` -- Import Claude extensions
@@ -45,7 +46,7 @@
 - `agy install` -- Configure PATH and shell aliases (`--dir`, `--skip-path`, `--skip-aliases`)
 
 ## Gemini CLI Migration Cheat Sheet
-| Gemini CLI | agy CLI v1.3.0 | Notes |
+| Gemini CLI | agy CLI v1.4.2 | Notes |
 | :--- | :--- | :--- |
 | `gemini -p "prompt"` | `agy -p "prompt"` | Auto-expands slash commands and skills in v1.1.9+ |
 | `gemini --yolo` | `agy --dangerously-skip-permissions` | Complete tool permission auto-approval |
@@ -54,7 +55,8 @@
 | `gemini -o stream-json` | `agy -p --output-format stream-json` | Strongly typed NDJSON event stream with token stats |
 | `N/A` | `agy -p --input-format stream-json` | Stdin NDJSON stream for multi-turn continuous runner |
 | `gemini -m <model>` | `agy --model <model>` | Specify model slug |
-| `gemini --approval-mode plan` | `agy --mode plan` | Auto-approved in headless print mode |
+| `gemini --approval-mode plan` | `agy --mode plan` | Settles in headless print mode; not implied by `--dangerously-skip-permissions` interactively |
+| `gemini --approval-mode auto_edit` | `agy --mode accept-edits` / `--mode auto` | `auto` also approves safe commands |
 | `gemini extensions list` | `agy plugin list` | Managed via plugin subsystem |
 | `gemini extensions install`| `agy plugin install <target>` | Supports marketplaces and GitHub subpaths |
 | `N/A` | `agy plugin import gemini` | Automatic migration of Gemini extensions |
@@ -70,6 +72,8 @@
 - `AGY_CLI_DISABLE_ESCAPE_SEQUENCE_OPTIMIZATIONS=1` -- Bypass dirty-rectangle renderer optimizations.
 - `AGY_CLI_CMD_OUTPUT_PERCENTAGE` -- Set max height of command outputs in TUI.
 - `ANTIGRAVITY_CLI_ALIAS` -- Override automatic binary name detection.
+- `AGY_CLI_OSC7501=on|off` -- Force or disable terminal tab status reporting (working / waiting / done / failed).
+- `AGY_CLI_OSC7501_MESSAGES=brief` -- Show status only, without pending command or question details.
 
 ## TUI Panels, Shortcuts & Keybindings
 - **Modal Vim Editing**: Enable in `/settings` -> `Editor Mode` -> `Vim`. Supports counts (`3dw`, `2di(`), Normal/Insert/Visual/Visual Line modes, and `vim.*` keybindings.
@@ -84,6 +88,11 @@
 - `/resume`: Resume picker. `Ctrl+F` toggles directory grouping (`pickerGrouping` setting).
 - Artifact Viewer: `m` cycles display mode (Image, ASCII fallback, Raw source); `t` opens outline; `Left`/`Right` pans diagrams; `Ctrl+D`/`Ctrl+U` half-page scrolls; `Ctrl+G` opens in `$EDITOR`.
 - `/config`: Use `←` / `→` arrow keys to change highlighted settings immediately without opening dropdowns.
+- `/compact [message]`: Summarize the conversation to free context; with a message, answer it afterwards.
+- `/plugin`: Interactive plugin marketplace manager (`install`, `uninstall`, `enable`, `disable`, `list`).
+- `Shift+Tab`: Cycle agent modes (including Auto).
+- `alt+m` (`Option+m` on macOS): Send using the opposite of your Queued Messages setting.
+- `/diff`: `←`/`→` switch files, `n`/`N` next change, `Ctrl+O` fold, `f` changes-only vs. whole file.
 
 ## Automation Patterns & Exit Codes
 - **Continuous Stdin Streaming**: `agy -p --input-format stream-json --output-format stream-json --dangerously-skip-permissions`
@@ -91,5 +100,6 @@
 - **Zero-Turn Stats**: `agy -p "/quota" --output-format json` (no quota spent, no agent turn started)
 - **Subagent Direct Prompting**: `@<subagent-name> <task instruction>`
 - **Exit Code 0**: Clean success (or graceful partial return on timeout expiration).
-- **Exit Code 1**: Invalid flags or invalid non-object `--json-schema`.
+- **Exit Code 1**: Invalid flags, invalid non-object `--json-schema`, or unknown `--agent` in `-p` mode.
+- **Exit Code 2**: Print-mode usage error (e.g. `--print` with `--prompt-interactive`).
 - **Exit Code 3**: Fatal agent/model API error with structured `AGY_ERROR: {...}` line on stderr.

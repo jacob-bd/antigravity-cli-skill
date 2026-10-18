@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-10-18
+
+### Added
+- Auto mode (`--mode auto`, `Shift+Tab` mode cycling) with sandbox-escape review, macOS/Linux only (agy v1.3.5+, v1.3.6+).
+- `/compact [message]` conversation compaction (agy v1.3.5+).
+- `agy plugin validate [path] [--strict] [--json]` and `agy plugin list --json` (agy v1.3.4+, v1.4.0+, v1.4.1+).
+- `/plugin` marketplace manager, `@antigravity-plugins-official` installs, and a plugin authoring section covering `.antigravity-plugin/`, `PLUGIN_DATA`, `bin/`, and root `agents.json` (agy v1.3.2+, v1.3.3+).
+- MCP `_meta: {"antigravity/alwaysLoad": true}` tool flag and plugin MCP header variable support (agy v1.3.3+, v1.4.0+).
+- `AGY_CLI_OSC7501` / `AGY_CLI_OSC7501_MESSAGES` environment variables and the `alt+m` opposite-send shortcut (agy v1.4.0+).
+- `/diff` viewer enhancements (syntax highlighting, folding, navigation, Commit Tree).
+- Exit code `2` for print-mode usage errors and exit code `1` for unknown `--agent` names in `-p` mode (agy v1.3.4+).
+- Usage patterns 16-22: Auto mode, plugin validation in CI, plugin install/audit, agent guard, `/compact`, unattended plan approval, always-loaded MCP tools.
+
+### Changed
+- Moved custom agent/customization and TUI reference sections into `resources/agents_and_customization.md` and `resources/tui_reference.md` so `SKILL.md` stays under agy's 24 KB skill body limit (validated with `agy plugin validate --strict`).
+- Skill version now tracks the agy version (1.4.2).
+- `--dangerously-skip-permissions` no longer auto-approves `/plan` implementation plans; use `Artifact Review` in `/config` (agy v1.3.2).
+- `--model` / `/model` accept a base model name without `--effort` (agy v1.3.4).
+- macOS sandbox blocks `~/Library/Application Support` by default (agy v1.3.3).
+- Agent commands set `GIT_EDITOR`/`HGEDITOR`/`JJ_EDITOR=false` and `JJ_PAGER=cat` (agy v1.3.3, v1.3.6).
+- Stalled model requests are canceled after 5 minutes and retried; retry waits are capped at 30 seconds (agy v1.3.4, v1.3.6).
+- `--mode` documented as `default | accept-edits | auto | plan`; Gemini CLI translation tables refreshed.
+
 ## [1.3.0] - 2026-10-06
 
 ### Added
