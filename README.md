@@ -54,20 +54,30 @@ Google announced at I/O 2026 (May 19) that Gemini CLI is transitioning to Antigr
 
 ## Installation
 
-Copy or symlink `SKILL.md` to your AI tool's skill directory:
+Install the **entire skill folder**, not just `SKILL.md`. The main file links to `resources/*.md` and `examples/usage_patterns.md`, so a folder that contains only `SKILL.md` has broken references.
+
+| Tool | User-scope skill directory |
+| :--- | :--- |
+| Claude Code | `~/.claude/skills/antigravity-cli/` |
+| Codex / Gemini CLI | `~/.agents/skills/antigravity-cli/` |
+| Antigravity CLI | `~/.gemini/config/skills/antigravity-cli/` |
+| Antigravity (IDE) | `~/.gemini/antigravity/skills/antigravity-cli/` |
+| OpenCode | `~/.config/opencode/skills/antigravity-cli/` |
+| Cursor | `~/.cursor/skills/antigravity-cli/` |
+| Cline | `~/.cline/skills/antigravity-cli/` |
+| Alef Agent | `~/.alef-agent/workspace/skills/antigravity-cli/` |
 
 ```bash
-# Claude Code
-cp SKILL.md ~/.claude/skills/antigravity-cli/SKILL.md
-
-# Gemini CLI
-cp SKILL.md ~/.gemini/skills/antigravity-cli/SKILL.md
-
-# Antigravity CLI (Global)
-cp -r . ~/.gemini/config/skills/antigravity-cli-skill/
-
-# Or install via Universal Skills Manager if available
+# Clone once, then install into any tool's skill directory (example: Claude Code)
+git clone https://github.com/jacob-bd/antigravity-cli-skill.git
+TOOL_DIR=~/.claude/skills/antigravity-cli
+mkdir -p "$TOOL_DIR"
+rsync -a --delete --exclude '.git' --exclude '.DS_Store' antigravity-cli-skill/ "$TOOL_DIR/"
 ```
+
+The same pattern works for project scope (e.g. `.agents/skills/antigravity-cli/` inside a repository) and for agy's alternate global skills root, `~/.gemini/antigravity-cli/skills/`.
+
+Prefer automation? [Universal Skills Manager](https://github.com/jacob-bd/universal-skills-manager) deploys the folder to every detected tool and keeps the copies in sync.
 
 ## Status
 

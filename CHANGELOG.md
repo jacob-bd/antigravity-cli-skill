@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stalled model requests are canceled after 5 minutes and retried; retry waits are capped at 30 seconds (agy v1.3.4, v1.3.6).
 - `--mode` documented as `default | accept-edits | auto | plan`; Gemini CLI translation tables refreshed.
 
+### Fixed
+- README installation instructions: install the entire skill folder (copying only `SKILL.md` breaks the `resources/` and `examples/` links) and use the correct per-tool skill directories.
+
 ## [1.3.0] - 2026-10-06
 
 ### Added
