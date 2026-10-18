@@ -118,9 +118,8 @@ List and inspect available custom and built-in agents.
 # Human-readable list
 agy agent
 
-# Machine-readable output for programmatic inspection
-agy agent --output-format json
-agy agent --output-format stream-json
+# Machine-readable list (agy agent rejects --output-format)
+agy -p "/agents" --output-format json
 ```
 
 ### 5. `agy models`
@@ -129,8 +128,8 @@ List available models for the current sign-in credential or API key.
 # Human-readable list
 agy models
 
-# Machine-readable output for tooling
-agy models --output-format json
+# Plain list (agy models rejects --output-format)
+agy models
 ```
 
 ### 6. `agy plugin` / `agy plugins`
@@ -227,10 +226,10 @@ agy -p --input-format stream-json --output-format stream-json --dangerously-skip
 {"prompt": "Generate a patch fixing the memory allocation in WorkerPool"}
 ```
 
-**Output protocol (strongly-typed NDJSON events on stdout):**
-- `init`: session metadata, active model, and tool declarations.
-- `step_update`: incremental text deltas, `tool_info` (tool name, args, output), and `subagent_info` (`conversation_id`, `log_uri`).
-- `result`: final answer, token accounting (`cache_read_tokens`, `prompt_tokens`, `candidates_tokens`), and status.
+**Output protocol (one envelope per line: `{"event": "<name>", "<name>": {payload}}`):**
+- `init`: session metadata (cwd, permission mode, tools).
+- `step_update`: `state` (`ACTIVE`/`DONE`), `step_type`, incremental `text_delta`, `tool_info` (tool name, args, output), and `subagent_info` (`conversation_id`, `log_uri`).
+- `result`: final answer, status, and token accounting (`input_tokens`, `output_tokens`, `thinking_tokens`, `cache_read_tokens`).
 
 ### 4. Enforcing Structured Output Schema (`--json-schema`)
 Use `--json-schema` to guarantee that the final response conforms to a JSON schema:
@@ -271,6 +270,7 @@ Key mechanics:
 - Omit `--mode plan` for code-writing tasks (agy will edit workspace files directly).
 - Capture structured outputs using `--output-format json` (result in `.response`).
 - Iterate on the same task using `--conversation <id>` with delta instructions.
+- A fired `--print-timeout` still exits `0` with `status: SUCCESS` and partial output: check stderr for the `print timeout` marker, then request the final report on the same `--conversation <id>`.
 
 **Read [resources/delegation_playbook.md](resources/delegation_playbook.md)** for complete delegation recipes, background execution patterns, error handling, and MCP/skill integration.
 

@@ -322,7 +322,7 @@ Version `v1.3.4+` makes `--agent` exit `1` in headless runs when the name matche
 ```bash
 if ! agy --agent security-auditor -p "Scan go.mod for CVEs" --dangerously-skip-permissions; then
   echo "agy failed (unknown agent or runtime error); available agents:"
-  agy agent --output-format json | jq '.'
+  agy -p "/agents" --output-format json | jq '.command.data.agents'
   exit 1
 fi
 ```

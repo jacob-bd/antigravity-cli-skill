@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - README installation instructions: install the entire skill folder (copying only `SKILL.md` breaks the `resources/` and `examples/` links) and use the correct per-tool skill directories.
+- Delegation playbook: documented that a fired `--print-timeout` still exits `0` with `status: SUCCESS`; added the mandatory stderr completion check (`print timeout` marker), a same-conversation finalization recipe, bounded-review guidance, real `stream-json` envelopes, an argv-array subprocess example, and permission/isolation caveats.
+- Corrected subcommand examples: `agy agent` and `agy models` reject `--output-format`; use `agy -p "/agents" --output-format json` for machine-readable agent lists.
 
 ## [1.3.0] - 2026-10-06
 
