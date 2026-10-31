@@ -25,7 +25,7 @@ When delegating commands from another agent or terminal environment, remember:
 
 ### The false-success trap
 
-When `--print-timeout` fires mid-turn, `agy` exits with code **`0`** and JSON `"status": "SUCCESS"` plus whatever partial output exists. stdout alone cannot tell a finished review from a cut-off one. The marker appears on stderr:
+When `--print-timeout` fires mid-turn, `agy` exits with code **`0`** and JSON `"status": "SUCCESS"` plus whatever partial output exists. The primary way to detect this is the `finished_reason` field in the JSON result: it is set to `print_timeout`, `interrupted`, or `error` when the turn ended early, and **omitted entirely** on normal completion. A stderr marker also appears as a fallback signal:
 
 ```text
 [agy] print timeout after 6m0s with turn in progress; returning partial output
@@ -38,15 +38,15 @@ Treat a run as finished only after all of these pass:
 | Check | Complete | Incomplete |
 | :--- | :--- | :--- |
 | Exit code | `0` | non-zero: take the error path below |
-| stdout JSON | parses | unparseable means a failed run |
-| stderr | no timeout marker | contains `print timeout` / `returning partial output` |
+| stdout JSON | parses, `finished_reason` absent | `finished_reason` is `print_timeout`, `interrupted`, or `error` |
 | `response` | non-empty report | empty response with `num_turns: 0` and zero `usage`: nothing was collected |
 
 Record a host-side outcome such as `complete` / `partial_timeout` / `failed`, and never silently label partial output as finished.
 
 ```bash
 agy -p "$PROMPT" --output-format json ... > out.json 2> err.log
-grep -q 'print timeout' err.log && OUTCOME=partial_timeout || OUTCOME=complete
+REASON=$(jq -r '.finished_reason // empty' out.json)
+if [ -n "$REASON" ]; then OUTCOME="$REASON"; else OUTCOME=complete; fi
 ```
 
 ### Recovery recipe: finish from collected evidence
@@ -109,7 +109,7 @@ agy -p "Perform an adversarial plan review of docs/rfc-001.md. Challenge assumpt
   --print-timeout 10m
 ```
 
-*Completion check:* grep stderr for `print timeout`. If present, treat the run as `partial_timeout` and use the recovery recipe with the returned `conversation_id`.
+*Completion check:* Check `.finished_reason` in `output.json` (or grep stderr for `print timeout`). If `print_timeout`, treat the run as `partial_timeout` and use the recovery recipe with the returned `conversation_id`.
 
 *Parsing response:*
 ```bash
@@ -211,9 +211,9 @@ cmd = [
 with open("agy.out.json", "w") as out, open("agy.err.log", "w") as err:
     subprocess.run(cmd, stdout=out, stderr=err, text=True, timeout=20 * 60)
 
-stderr_text = open("agy.err.log").read()
 data = json.load(open("agy.out.json"))
-outcome = "partial_timeout" if "print timeout" in stderr_text else ("complete" if data.get("response") else "failed")
+reason = data.get("finished_reason")
+outcome = reason if reason else ("complete" if data.get("response") else "failed")
 print(outcome, data.get("conversation_id"))
 ```
 
@@ -231,11 +231,12 @@ Each stdout line is one JSON object with a top-level `event` field and a payload
 {"event": "init", "conversation_id": "9f1c7a2e-0000-0000-0000-000000000000", "init": {"cwd": "/repo", "permission_mode": "always-proceed", "tools": ["read_file", "run_command"]}}
 {"event": "step_update", "step_update": {"conversation_id": "9f1c7a2e-0000-0000-0000-000000000000", "step_index": 1, "state": "ACTIVE", "step_type": "agent_response", "text_delta": "ok"}}
 {"event": "step_update", "step_update": {"conversation_id": "9f1c7a2e-0000-0000-0000-000000000000", "step_index": 1, "state": "DONE", "step_type": "agent_response", "text_delta": "\n", "duration_seconds": 2.38, "usage": {"input_tokens": 23463, "output_tokens": 36, "thinking_tokens": 35, "cache_read_tokens": 0, "total_tokens": 23499}}}
-{"event": "result", "result": {"conversation_id": "9f1c7a2e-0000-0000-0000-000000000000", "status": "SUCCESS", "response": "ok\n", "duration_seconds": 36.47, "num_turns": 1, "usage": {"input_tokens": 23463, "output_tokens": 36, "thinking_tokens": 35, "cache_read_tokens": 0, "total_tokens": 23499}}}
+{"event": "result", "result": {"conversation_id": "9f1c7a2e-0000-0000-0000-000000000000", "status": "SUCCESS", "finished_reason": "print_timeout", "response": "ok\n", "duration_seconds": 36.47, "num_turns": 1, "usage": {"input_tokens": 23463, "output_tokens": 36, "thinking_tokens": 35, "cache_read_tokens": 0, "total_tokens": 23499}}}
 ```
 
 - Parser rule: key only on `event`, `step_update.state`, `step_update.step_type`, `step_update.text_delta`, and `result.*`; ignore unknown fields. There is no flat `type` field.
 - Tool steps carry `tool_info` (name, args, output) and subagent steps carry `subagent_info` inside their `step_update` payload.
+- `finished_reason` is present only when the turn ended early (`print_timeout`, `interrupted`, `error`); absent on normal completion.
 - Keep token counts, account details, and raw tool output out of ordinary status logs.
 
 ---
@@ -244,7 +245,7 @@ Each stdout line is one JSON object with a top-level `event` field and a payload
 
 | Exit Code | Meaning | Host AI Action |
 | :--- | :--- | :--- |
-| `0` | Success, or a `--print-timeout` cut returning partial output | Run the completion check (stderr marker) before parsing `.response`; recover incomplete runs on the same conversation. |
+| `0` | Success, or a `--print-timeout` cut returning partial output | Check `finished_reason` in the JSON result (`print_timeout`, `interrupted`, `error`); absent means complete. Recover incomplete runs on the same conversation. |
 | `1` | Configuration error, invalid CLI flags, invalid `--json-schema` | Check stderr; fix invocation parameters. |
 | `2` | Usage error (e.g. combining `--print` with `-i`) | Fix argument conflict. |
 | `3` | Fatal API or model error (Quota exhausted, auth fail) | Stderr contains structured `AGY_ERROR: {...}` JSON. Parse error code and report to user. |

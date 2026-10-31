@@ -1,4 +1,4 @@
-# agy Custom Agents & Customization System Reference (v1.4.2)
+# agy Custom Agents & Customization System Reference (v1.4.12)
 
 Detailed reference moved out of `SKILL.md` to keep it under agy's 24 KB skill body limit.
 
@@ -51,6 +51,8 @@ You are a Staff Software Engineer. Focus on high-throughput architecture, clean 
 - **Roster Auto-Injection (`v1.2.5+`)**: Any custom agent declaring `invoke_subagent` in its tools automatically receives the full subagent catalog and usage instructions in its system prompt.
 - **Built-in Image Generator (`v1.2.16+`)**: The agent automatically delegates visual asset creation to the built-in `image-generator` subagent with up to 3 automatic verification iterations.
 - **Isolated Worktrees (`v1.2.10+`)**: Subagent Git operations are isolated in `worktrees/` inside the application data directory to prevent workspace collision.
+- **Cross-Subagent Permissions (`v1.4.6+`)**: Approving a permission in the main agent or any subagent applies across the entire conversation tree, eliminating redundant permission prompts in multi-agent swarms.
+- **Compaction Fidelity (`v1.4.10+`)**: When a subagent's context is compacted, the summary retains the parent agent's 10 most recent messages, preserving delegation task continuity.
 
 ## Customization System & Token Budgeting
 
@@ -76,6 +78,26 @@ Manifests (`skills.json`, `rules.json`, etc.) are discovered and merged across e
 - Store data in the per-plugin folder exposed as `PLUGIN_DATA`, and ship command-line tools in a `bin/` folder that the agent can run by name.
 - Put `AGENTS.md`/`GEMINI.md` rules in `rules/`, not at the plugin root (`agy plugin validate` warns otherwise).
 - Frontmatter in skills, rules, workflows, and Markdown agents may contain an unquoted colon in `description:` (`v1.3.6+`).
+- `agy plugin validate` (`v1.4.3+`–`v1.4.9+`) expanded to check hooks, sidecars, component lists, context providers, `author`/`homepage`/`repository` fields, kebab-case `name` enforcement, and `logo`/`iconUri` path validation. Use `--strict --json` in CI pipelines.
+- `agy plugin install` (`v1.4.8+`) prints the list of installed components (skills, agents, rules, MCP servers, hooks) after installation.
+- Plugin `auth.json` supports `"optional": true` for API key providers (`v1.4.12+`): the plugin works without the key at a free rate limit instead of failing with `401`.
+- `agy plugin import claude` (`v1.4.11+`) fully supports Claude Code marketplace plugins, including remote MCP servers (`"type": "http"`), `.mcp.json` files, and `${CLAUDE_PLUGIN_ROOT}` path expansion.
+
+### Hook Capabilities for Automation
+
+Hooks (`hooks.json`) allow agents and plugin authors to intercept the agent lifecycle:
+
+- **`lastUserInput` (`v1.4.7+`)**: Hook commands receive the latest user message in the JSON on stdin, enabling prompt screening, logging, or policy enforcement before the agent acts.
+- **`terminationBehavior` (`v1.4.11+`)**: A `PreInvocation` hook can return `"terminationBehavior": "terminate"` to stop the turn before the model is called. Combined with `errorMessage`, hooks can block sensitive prompts and surface a user-facing error without leaking the prompt to the model. In headless `-p` runs, termination causes a non-zero exit code.
+
+```json
+{
+  "terminationBehavior": "terminate",
+  "errorMessage": {
+    "userMessage": "This prompt contains sensitive data and was blocked by policy."
+  }
+}
+```
 
 ### Skill Metadata & Hot Reloading
 - **Skill Visual Branding (`v1.1.20+`)**: Add `metadata.icon` (e.g. `icon: 🛡️`) in `SKILL.md` frontmatter to render icons across `/skills` and autocomplete popups.

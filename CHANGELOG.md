@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.12] - 2026-10-31
+
+### Added
+- Structured turn completion detection via `finished_reason` (`print_timeout`, `interrupted`, `error`) in `--output-format json` and `stream-json` results; omitted on complete runs (agy v1.4.11+).
+- Hook `terminationBehavior: "terminate"` in `PreInvocation` hooks and `lastUserInput` user prompt inspection on stdin (agy v1.4.7+, v1.4.11+).
+- Hook `errorMessage.userMessage` support, causing headless `-p` runs to exit non-zero when a prompt is rejected (agy v1.4.11+).
+- Plugin `auth.json` support for `"optional": true` API key providers, allowing free-tier unauthenticated execution (agy v1.4.12+).
+- Auto mode (`--mode auto`) on Windows 11 version 24H2+ for personal Google Accounts (agy v1.4.4+).
+- MCP root conversation ID (`_meta["antigravity.google/root_conversation_id"]`) forwarded in `tools/call` for subagent calls (agy v1.4.4+).
+- MCP on-demand tool result inline return limit raised from 4 KB to 10 KB (agy v1.4.7+).
+- Cross-subagent permission sharing: approving an action applies across the entire conversation and all subagents (agy v1.4.6+).
+- Subagent context compaction preserves the parent agent's 10 most recent messages (agy v1.4.10+).
+- `agy plugin validate` expanded checks for hooks, sidecars, context providers, author/homepage fields, kebab-case names, and logo/icon paths (agy v1.4.3+–v1.4.9+).
+- `agy plugin import claude` full support for Claude Code marketplace plugins, remote HTTP MCP servers, and `.mcp.json` files (agy v1.4.11+).
+- Usage patterns 23-27: `finished_reason` detection, hook prompt termination, expanded CI plugin validation, optional plugin API keys, and MCP root conversation ID correlation.
+
+### Changed
+- Updated `resources/delegation_playbook.md` to use `finished_reason` as the canonical completion detection mechanism, retaining stderr grep as fallback.
+- Sandbox defaults: blocked `~/.docker`, `~/.kube`, and `~/_netrc` by default; sensitive Google domains (`mail`, `drive`, `console.cloud`) isolated from general domain approvals (agy v1.4.6+, v1.4.9+).
+- `AGY_ADC_AUTH` now correctly loads skills, rules, plugins, and hooks (agy v1.4.7+).
+- Condensed verbose narrative and translation tables in `SKILL.md` to preserve the mandatory <24 KB body limit.
+
 ## [1.4.2] - 2026-10-18
 
 ### Added

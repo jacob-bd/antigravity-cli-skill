@@ -1,26 +1,18 @@
 ---
 name: antigravity-cli
 description: "Expert guide for Google's Antigravity CLI (agy), the official successor to Gemini CLI. Use when the user mentions 'agy', 'antigravity', 'antigravity cli', 'gemini cli replacement', 'gemini cli migration', or any task involving the agy command-line tool including running prompts, managing plugins, resuming sessions, or automating agy in scripts and CI/CD pipelines."
-version: 1.4.2
+version: 1.4.12
 ---
 
 # Antigravity CLI (agy) Skill
 
-Targets `agy` v1.4.2.
+Targets `agy` v1.4.12.
 
 Use this skill to guide AI coding agents, automate CI/CD pipelines, orchestrate multi-agent swarms, configure Model Context Protocol (MCP) servers, manage custom Markdown agents, and control workspace environments with the `agy` CLI.
 
 ## Context: Gemini CLI Successor
 
-The `agy` CLI is Google's official replacement for Gemini CLI, announced at Google I/O on May 19, 2026. Gemini CLI ceased serving requests for consumer and free users on June 18, 2026. Enterprise users on Gemini Code Assist Standard/Enterprise retain Gemini CLI access indefinitely.
-
-Key architectural characteristics:
-- **Go binary** (not Node.js) — instant startup latency, zero npm dependencies, bundled embedded `ripgrep` engine.
-- **Unified agent platform** — shares the identical agent harness, runtime, and customization engine as the Antigravity IDE desktop application.
-- **Plugin system** — replaces legacy Gemini CLI extensions (`agy plugin import gemini` to migrate).
-- **High tool limit** — supports up to **512 tool calls** per turn on Gemini models for deep multi-step agentic execution.
-- **Binary identification** — `agy` (primary executable), `antigravity` (certain Linux distributions). Set the `ANTIGRAVITY_CLI_ALIAS` environment variable to override binary resolution.
-- **Default install path** — typically `~/.local/bin/agy`.
+The `agy` CLI is Google's official replacement for Gemini CLI. It is a compiled Go binary (instant startup, zero npm dependencies, embedded `ripgrep`), sharing the agent harness and runtime with the Antigravity IDE desktop application. It supports up to **512 tool calls** per turn on Gemini models for deep multi-step agentic execution. Executable is typically at `~/.local/bin/agy` (override with `ANTIGRAVITY_CLI_ALIAS`).
 
 ## Complete Command-Line Flag Reference
 
@@ -80,6 +72,8 @@ agy mcp remove fs
 - Use `--` before the command if any argument begins with a dash `-`.
 - Plugin MCP servers are automatically namespaced as `<plugin>_<server>` to prevent name collisions (`v1.2.2+`).
 - MCP servers can mark a tool as always loaded by setting `_meta: {"antigravity/alwaysLoad": true}` on it in their `tools/list` response, so the agent gets it directly instead of discovering it on demand (`v1.3.3+`).
+- MCP `tools/call` requests include `_meta["antigravity.google/root_conversation_id"]` to correlate subagent calls back to the parent conversation (`v1.4.4+`).
+- On-demand MCP tool results up to 10 KB return directly inline without temporary file spills (`v1.4.7+`).
 - Plugin MCP servers can use variables in request headers (e.g. `"Authorization": "Bearer ${TOKEN}"`); they are resolved to your configured values (`v1.4.0+`).
 - If an MCP server process exits unexpectedly, `/mcp` marks it `Error` instead of `Ready` (`v1.4.1+`).
 
@@ -105,12 +99,7 @@ agy remote-control stop
 - Run `/remote-control off` to tear down the active tunnel.
 
 ### 3. `agy mic-serve` (Audio Dictation Forwarding)
-Added in `v1.1.21+`. Forwards a local machine's microphone to an `agy` CLI session running on a remote host (e.g. over SSH) for terminal speech dictation (`/voice` or `F5`):
-
-```bash
-# Run on local client machine
-agy mic-serve --addr 127.0.0.1:4713
-```
+Forwards a local client microphone to an `agy` session running on a remote host (e.g. over SSH) for speech dictation: `agy mic-serve --addr 127.0.0.1:4713` (`v1.1.21+`).
 
 ### 4. `agy agent` / `agy agents`
 List and inspect available custom and built-in agents.
@@ -160,27 +149,18 @@ agy plugin validate ./my-plugin --strict --json
 ```
 
 *Notes:*
-- `agy plugin list --json` added in `v1.3.4+`; it lists every installed plugin, not only imported ones.
-- `agy plugin validate` (`v1.4.0+`, expanded in `v1.4.1+`) checks a plugin with the same rules the CLI uses to load it, including its `plugin.json` (unknown fields with "did you mean" hints, invalid names, components misplaced inside `.antigravity-plugin/`), skills, subagents, and rules. Each error and warning is reported with its file and line.
-- Inside the TUI, `/plugin` (`v1.3.2+`) opens the interactive manager for the official marketplace (browse, install, `install`/`uninstall`/`enable`/`disable`/`list`, or `+ Install from local directory...`). Plugin names and manifests are case-insensitive (`v1.3.6+`).
+- `agy plugin list --json` (`v1.3.4+`): lists every installed plugin with version and enabled state.
+- `agy plugin validate` (`v1.4.0+`–`v1.4.9+`): validates plugins with the same rules the loader uses, checking `plugin.json` (syntax, fields, kebab-case `name`, `author`/`homepage`), skills, subagents, rules, `hooks.json`, sidecars, and context providers. Use `--strict --json` in CI.
+- `agy plugin install` (`v1.4.8+`): prints loaded skills, agents, rules, MCP servers, and hooks upon installation.
+- `agy plugin import claude` (`v1.4.11+`): imports Claude Code marketplace plugins, remote HTTP MCP servers, and `.mcp.json`.
+- Plugin `auth.json` supports `"optional": true` for API key providers to allow unauthenticated free-tier usage (`v1.4.12+`).
+- Inside the TUI, `/plugin` (`v1.3.2+`) opens the interactive manager.
 
 ### 7. `agy install`
-Configures environment paths and shell configuration profiles (`.zshrc`, `.bashrc`):
-```bash
-agy install
-agy install --dir /usr/local/bin
-agy install --skip-path
-agy install --skip-aliases
-```
+Configures environment PATH and shell aliases: `agy install [--dir <path>] [--skip-path] [--skip-aliases]`.
 
 ### 8. `agy update` & `agy changelog`
-```bash
-# Update the CLI binary to the latest release
-agy update
-
-# View changelog and release notes (also supported via agy -p "/changelog")
-agy changelog
-```
+Update binary (`agy update`) or view release notes (`agy changelog` or `agy -p "/changelog"`).
 
 ## Agentic Automation & Headless Scripting (`-p`)
 
@@ -245,19 +225,23 @@ agy -p "Extract all exported functions in auth.go" \
 ### 5. Exit Codes & Structured Error Reporting
 The `agy` CLI uses distinct exit codes to simplify automation error handling:
 - **`0`**: Success, or graceful partial completion when `--print-timeout` expires.
-- **`1`**: Startup configuration errors, invalid command flags, malformed `--json-schema`, or an unknown `--agent` name in `-p` mode (`v1.3.4+`).
+- **`1`**: Startup configuration errors, invalid flags, malformed `--json-schema`, unknown `--agent` name in `-p` mode (`v1.3.4+`), or prompt blocked by hook (`v1.4.11+`).
 - **`2`**: Print-mode usage errors, such as combining `--print` with `--prompt-interactive` (`v1.3.4+`).
 - **`3`**: Fatal agent or model API error (`v1.2.6+`, `v1.2.10+`). When exit code 3 is returned, the CLI outputs a structured JSON error line on stderr:
   ```text
   AGY_ERROR: {"canonical_status": "RESOURCE_EXHAUSTED", "error_code": 429, "retryable": false, "error_id": "err_quota_exceeded"}
   ```
 
+*Completion Detection (`v1.4.11+`):* Results in `--output-format json` and `stream-json` include `finished_reason` (`print_timeout`, `interrupted`, `error`) when a turn terminates early. The field is omitted entirely on clean, complete runs.
+
 ### 6. Non-Interactive Autonomous Decision Making
 In headless `-p` runs:
 - Implementation plan reviews (`--mode plan`) settle without blocking (`v1.1.28+`). For unattended interactive plan approval, set `Artifact Review` in `/config` (`--dangerously-skip-permissions` no longer implies it since `v1.3.2`).
 - User confirmation questions (`ask_question`) auto-settle choices autonomously rather than hanging (`v1.1.12+`).
 - Subagent permission denials are handled strictly without attempting unauthorized workarounds (`v1.2.15+`).
+- Permission grants apply across the main agent and all subagents (`v1.4.6+`).
 - Questions asked by subagents and workflow agents are skipped in `-p` runs so the subagent can continue (`v1.3.6+`).
+- Context compaction in subagents preserves the parent agent's 10 most recent messages (`v1.4.10+`).
 
 ## Delegating Work to agy (Host CLI Integration)
 
@@ -270,13 +254,13 @@ Key mechanics:
 - Omit `--mode plan` for code-writing tasks (agy will edit workspace files directly).
 - Capture structured outputs using `--output-format json` (result in `.response`).
 - Iterate on the same task using `--conversation <id>` with delta instructions.
-- A fired `--print-timeout` still exits `0` with `status: SUCCESS` and partial output: check stderr for the `print timeout` marker, then request the final report on the same `--conversation <id>`.
+- A fired `--print-timeout` still exits `0` with `status: SUCCESS` and partial output: inspect `finished_reason` in JSON (`v1.4.11+`) or grep stderr for `print timeout`, then request final synthesis on the same `--conversation <id>`.
 
 **Read [resources/delegation_playbook.md](resources/delegation_playbook.md)** for complete delegation recipes, background execution patterns, error handling, and MCP/skill integration.
 
 ## Custom Agents & Customization System
 
-Custom agents are Markdown files with YAML frontmatter in `.agents/agents/<name>.md` (project) or `~/.gemini/config/agents/<name>.md` (global), launched with `agy --agent <name>` or delegated to as subagents. Rules (`GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`) get a dedicated 20,000-token budget so they never evict skills, subagents, or MCP tools. Manifests (`skills.json`, `rules.json`, `agents.json`, `plugins.json`) are discovered across every `.agents/` folder up to the Git root. Plugins can ship skills, rules, MCP servers, hooks, and (since `v1.3.3`) subagents via a root `agents.json`.
+Custom agents are Markdown files with YAML frontmatter in `.agents/agents/<name>.md` (project) or `~/.gemini/config/agents/<name>.md` (global), launched with `agy --agent <name>` or delegated to as subagents. Rules (`GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`) get a dedicated 20,000-token budget so they never evict skills, subagents, or MCP tools. Manifests (`skills.json`, `rules.json`, `agents.json`, `plugins.json`) are discovered across every `.agents/` folder up to the Git root. Plugins can ship skills, rules, MCP servers, hooks, and subagents via a root `agents.json`. Hooks (`hooks.json`) support `lastUserInput` inspection (`v1.4.7+`) and `terminationBehavior: "terminate"` to gate turns before model calls (`v1.4.11+`).
 
 **Read [resources/agents_and_customization.md](resources/agents_and_customization.md)** for the full agent schema, frontmatter fields, subagent messaging (`@<name>`), manifest scanning rules, plugin authoring, and skill metadata/hot reloading.
 
@@ -294,23 +278,23 @@ Key interactive features: modal Vim editing, `/model <name> [prompt]` one-shot s
 - **Artifacts and Scratch Directories (`v1.2.10+`)**: Sandboxed commands have full read/write access to conversation artifact and scratch directories.
 - **URL Reading (`v1.1.28+`)**: URL fetch tools default to prompting for confirmation before fetching external web pages.
 - **macOS Application Support (`v1.3.3+`)**: `~/Library/Application Support` is blocked by default (apps keep credentials there); allow it explicitly in sandbox rules if needed.
+- **Sensitive Credentials (`v1.4.6+`)**: Sandboxed commands cannot read or modify `~/.docker`, `~/.kube`, or `~/_netrc` without explicit approval.
+- **Google Domain Isolation (`v1.4.9+`)**: Approving general Google sites does not permit access to sensitive apps (`mail.google.com`, `drive.google.com`, `console.cloud.google.com`).
 - **Non-Interactive VCS Editors (`v1.3.6+`)**: Agent commands set `GIT_EDITOR`, `HGEDITOR`, `JJ_EDITOR` to `false` and `PAGER`, `GIT_PAGER`, `JJ_PAGER` to `cat`, so `git commit` without `-m` fails fast instead of hanging.
 
 ### Permission Allowlisting Rules
 - **Subcommand Pinning**: Permission suggestions for script runners (`npm run <script>`, `go vet`, `repo status`, `jj config`) pin the specific subcommand so approving one task does not open access to arbitrary scripts (`v1.1.21+`, `v1.2.9+`, `v1.2.15+`).
-- **Compound Shell Commands (`v1.1.8+`)**: Exact chained commands (e.g. `git fetch && git rebase`) can be saved as allow-always rules.
+- **Compound Shell Commands (`v1.1.8+`)**: Exact chained commands (e.g. `git fetch && git rebase`) can be saved as allow-always rules. Multi-line script rules apply cleanly (`v1.4.9+`).
 - **Rule Syntax**: Rules match exact command prefixes by default. Opt into regex pattern matching by prefixing the rule with `regex:`.
 
 ### Auto Mode (`--mode auto`, `v1.3.5+`)
-Approves file edits and safe commands without asking; still prompts before irreversible actions. Commands that would leave the sandbox are reviewed by a separate agent first (`v1.3.6+`: allows the workspace's own format/lint/fix commands, blocks uploads of sensitive data).
+Approves file edits and safe commands without asking; still prompts before irreversible actions. Commands that would leave the sandbox are reviewed by a separate agent first (`v1.3.6+`: allows the workspace's own format/lint/fix commands, blocks uploads of sensitive data; `v1.4.7+`–`v1.4.9+`: prompts less often for routine tasks).
 
 ```bash
 # Launch a session in Auto mode
 agy --mode auto -i "Refactor the auth package and fix any lint errors"
-
-# Or switch inside the TUI: Shift+Tab cycles modes, or set Agent Mode in /config
 ```
-*Availability:* macOS and Linux (Windows support is pending).
+*Availability:* macOS, Linux, and Windows 11 version 24H2+ (`v1.4.4+`).
 
 ## Complete Environment Variables Reference
 
@@ -319,36 +303,26 @@ agy --mode auto -i "Refactor the auth package and fix any lint errors"
 | `GEMINI_API_KEY` | Direct API key for Gemini API access without interactive sign-in (`modelProvider: "gemini"`). | v1.1.13+ |
 | `GOOGLE_GEMINI_BASE_URL` | Custom endpoint URL when authenticating via `GEMINI_API_KEY`. | v1.1.13+ |
 | `USE_ADC` | Set to `1` to authenticate via Application Default Credentials. | v1.0.11+ |
-| `AGY_CLI_HIDE_ACCOUNT_INFO` | Set to `true` or `1` to hide user email and plan tier details from terminal headers. | v1.0.2+ |
-| `AGY_CLI_HIDE_LOGO` | Set to `true` or `1` to suppress ASCII banner logo for screen readers or narrow viewports. | v1.1.19+ |
-| `AGY_CLI_DISABLE_LATEX` | Set to `true` or `1` to disable terminal LaTeX math rendering globally. | v1.0.4+ |
-| `CLI_GRAPHICS` | Set to `kitty` to force Kitty graphics protocol inside tmux or multiplexers. | v1.2.10+ |
-| `AGY_CLI_DISABLE_ESCAPE_SEQUENCE_OPTIMIZATIONS` | Bypasses dirty-rectangle rendering optimizations for specialized terminal emulators. | v1.1.19+ |
-| `AGY_CLI_CMD_OUTPUT_PERCENTAGE` | Configures max percentage height of command outputs in the TUI. | v1.0.11+ |
+| `AGY_ADC_AUTH` | ADC sign-in for Business accounts (Claude Opus/Sonnet 5.5 available; loads skills, rules, plugins, hooks correctly in v1.4.7+). | v1.3.3+, v1.4.7+ |
 | `ANTIGRAVITY_CLI_ALIAS` | Overrides the detected binary executable name. | v1.0.0+ |
-| `AGY_CLI_OSC7501` | `on` / `off` to force or disable OSC 7501 terminal status reporting. | v1.4.0+ |
-| `AGY_CLI_OSC7501_MESSAGES` | Set to `brief` to show only the status, without pending command or question details. | v1.4.0+ |
-| `AGY_ADC_AUTH` | ADC sign-in for Business accounts (Claude Opus 5.5 / Sonnet 5.5 available, telemetry off, Remote Control unsupported). | v1.3.3+, v1.3.6+, v1.4.1+ |
+| `CLI_GRAPHICS` | Set to `kitty` to force Kitty graphics protocol inside tmux or multiplexers. | v1.2.10+ |
+| `AGY_CLI_OSC7501` | `on` / `off` to force or disable OSC 7501 terminal status reporting (`AGY_CLI_OSC7501_MESSAGES=brief` for compact). | v1.4.0+ |
+| `AGY_CLI_HIDE_ACCOUNT_INFO` | Set to `true` to hide user email/plan in terminal header. Also: `AGY_CLI_HIDE_LOGO`, `AGY_CLI_DISABLE_LATEX`. | v1.0.2+ |
 
-## Gemini CLI Flag & Feature Translation
+## Gemini CLI Flag Translation
 
-| Gemini CLI | agy CLI v1.4.2 Equivalent | Notes |
+| Gemini CLI | agy CLI Equivalent | Notes |
 | :--- | :--- | :--- |
-| `gemini -p "prompt"` | `agy -p "prompt"` | Now auto-expands leading slash commands and skills. |
-| `gemini --yolo` | `agy --dangerously-skip-permissions` | Complete tool auto-approval. |
-| `gemini --resume <id>` | `agy --conversation <id>` | Resume session by ID. |
-| `gemini -c` | `agy -c` | Continues most recent conversation with directory fallback. |
-| `gemini -o stream-json` | `agy -p --output-format stream-json` | Strongly typed NDJSON event stream with token stats. |
-| `N/A` | `agy -p --input-format stream-json` | Stdin NDJSON stream for multi-turn continuous runner. |
-| `gemini -m <model>` | `agy --model <model>` | Explicit model selection. |
-| `gemini --approval-mode plan` | `agy --mode plan` | Replaces `/planning` mode. |
-| `gemini --approval-mode auto_edit` | `agy --mode accept-edits` or `agy --mode auto` | `auto` (v1.3.5+) also approves safe commands. |
-| `gemini extensions list` | `agy plugin list` | Managed via plugin subsystem. |
-| `gemini extensions install`| `agy plugin install <target>` | Supports marketplaces and GitHub subpaths. |
-| `N/A` | `agy plugin import gemini` | One-click migration of Gemini extensions to plugins. |
-| `N/A` | `agy mcp add\|list\|remove` | Built-in CLI management for MCP servers. |
-| `N/A` | `agy remote-control start` | OS-registered background remote service daemon. |
-| `N/A` | `agy plugin validate <path> --strict --json` | CI-ready plugin validation (v1.4.0+). |
+| `gemini -p "prompt"` | `agy -p "prompt"` | Auto-expands leading slash commands and skills |
+| `gemini --yolo` | `agy --dangerously-skip-permissions` | Complete tool auto-approval |
+| `gemini --resume <id>` / `-c` | `agy --conversation <id>` / `agy -c` | Resumes session / continues recent |
+| `gemini -o stream-json` | `agy -p --output-format stream-json` | NDJSON event stream with usage stats |
+| `gemini -m <model>` | `agy --model <model>` | Explicit model selection |
+| `gemini --approval-mode plan` | `agy --mode plan` | Plan mode; check `finished_reason` in output |
+| `gemini --approval-mode auto_edit` | `agy --mode accept-edits` / `--mode auto` | `auto` also approves safe commands |
+| `gemini extensions list\|install` | `agy plugin list\|install` | Managed via plugin subsystem (`agy plugin import gemini`) |
+
+See [resources/cheat_sheet.md](resources/cheat_sheet.md) for full migration comparison.
 
 ## Troubleshooting & Failure Recovery
 
@@ -360,6 +334,7 @@ agy --mode auto -i "Refactor the auth package and fix any lint errors"
 - **Subagent Deadlocks**: Subagents respect permission boundaries. If a subagent lacks permissions in autonomous mode, it halts rather than attempting workarounds. Run with proper allowlisting in `settings.json` or pass `--dangerously-skip-permissions`.
 - **Hung Model Requests**: A model connection with no data for 5 minutes is canceled and retried (`v1.3.6+`), with at most 30 seconds between retries (`v1.3.4+`). Socket disconnects (laptop sleep, Wi-Fi change) are retried too (`v1.4.1+`).
 - **Plan Not Auto-Approved**: `/plan` waiting for review despite `--dangerously-skip-permissions` is intended since `v1.3.2`; set `Artifact Review` in `/config`.
+- **Incomplete Headless Runs**: In `v1.4.11+`, check `finished_reason` in `--output-format json` results. A run returning exit code `0` with `finished_reason: "print_timeout"` is partial. Resume on the same session via `--conversation <id>`.
 - **`Eligibility check failed` at Launch**: Fixed in `v1.4.0`; run `agy update`.
 - **Plugin Doesn't Load**: Run `agy plugin validate <path> --strict` for file and line level errors (`v1.4.0+`).
 - **Plugin MCP Collisions**: If two plugins define conflicting MCP server names, the CLI automatically namespaces them as `<plugin>_<server>`. Reference them using their prefixed identifier.

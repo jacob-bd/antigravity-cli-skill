@@ -1,4 +1,4 @@
-# agy CLI Quick Reference (v1.4.2)
+# agy CLI Quick Reference (v1.4.12)
 
 ## All Command-Line Flags
 | Flag | Short | What it does | Added / Updated |
@@ -46,7 +46,7 @@
 - `agy install` -- Configure PATH and shell aliases (`--dir`, `--skip-path`, `--skip-aliases`)
 
 ## Gemini CLI Migration Cheat Sheet
-| Gemini CLI | agy CLI v1.4.2 | Notes |
+| Gemini CLI | agy CLI v1.4.12 | Notes |
 | :--- | :--- | :--- |
 | `gemini -p "prompt"` | `agy -p "prompt"` | Auto-expands slash commands and skills in v1.1.9+ |
 | `gemini --yolo` | `agy --dangerously-skip-permissions` | Complete tool permission auto-approval |
@@ -92,14 +92,15 @@
 - `/plugin`: Interactive plugin marketplace manager (`install`, `uninstall`, `enable`, `disable`, `list`).
 - `Shift+Tab`: Cycle agent modes (including Auto).
 - `alt+m` (`Option+m` on macOS): Send using the opposite of your Queued Messages setting.
-- `/diff`: `←`/`→` switch files, `n`/`N` next change, `Ctrl+O` fold, `f` changes-only vs. whole file.
+- `/diff`: `←`/`→` switch files, `/` search with match counts (`v1.4.3+`), `[`/`]` Per Turn jump (`v1.4.8+`), `n`/`N` next match, `Ctrl+O` fold, `f` toggle changes-only.
 
 ## Automation Patterns & Exit Codes
 - **Continuous Stdin Streaming**: `agy -p --input-format stream-json --output-format stream-json --dangerously-skip-permissions`
 - **Headless Skill Execution**: `agy -p "/my-skill test this feature" --dangerously-skip-permissions`
 - **Zero-Turn Stats**: `agy -p "/quota" --output-format json` (no quota spent, no agent turn started)
 - **Subagent Direct Prompting**: `@<subagent-name> <task instruction>`
-- **Exit Code 0**: Clean success (or graceful partial return on timeout expiration).
-- **Exit Code 1**: Invalid flags, invalid non-object `--json-schema`, or unknown `--agent` in `-p` mode.
+- **Completion Detection (`v1.4.11+`)**: Result contains `finished_reason` (`print_timeout`, `interrupted`, `error`) if ended early; omitted on clean completion.
+- **Exit Code 0**: Clean success (or graceful partial return on timeout expiration; inspect `finished_reason`).
+- **Exit Code 1**: Invalid flags, invalid non-object `--json-schema`, unknown `--agent` in `-p` mode, or terminated by hook (`v1.4.11+`).
 - **Exit Code 2**: Print-mode usage error (e.g. `--print` with `--prompt-interactive`).
 - **Exit Code 3**: Fatal agent/model API error with structured `AGY_ERROR: {...}` line on stderr.

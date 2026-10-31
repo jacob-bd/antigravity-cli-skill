@@ -1,4 +1,4 @@
-# agy CLI Usage Patterns (v1.4.2)
+# agy CLI Usage Patterns (v1.4.12)
 
 Executable patterns and architectural recipes for automating, scripting, and orchestrating Google's Antigravity CLI.
 
@@ -229,15 +229,36 @@ agy --effort max -p "Formal proof of correctness for lock-free ring buffer" \
 
 ---
 
-## Pattern 13: Audio Dictation with Remote Forwarding
-Version `v1.1.21+` provides speech-to-text dictation into the prompt:
+## Pattern 13: Two-Phase Plan Review and Automated Execution
+Host agents (Claude Code, Codex, etc.) can coordinate complex changes through `agy` using a two-phase review-then-execute flow: first produce and critique the plan in read-only mode (`--mode plan`), then execute the implementation on the same conversation:
 
 ```bash
-# On local laptop (client forwarding local microphone):
-agy mic-serve --addr 127.0.0.1:4713
+#!/usr/bin/env bash
+set -eo pipefail
 
-# In remote SSH session:
-# Press F5 or type /voice in prompt to begin dictation
+# Phase 1: Request adversarial plan review (read-only, no file modifications)
+agy -p "Review architecture of src/auth/ and propose a migration plan to JWT v2 with refresh tokens. Produce step-by-step implementation tasks. Do not edit files." \
+  --add-dir . \
+  --mode plan \
+  --effort high \
+  --output-format json \
+  --dangerously-skip-permissions \
+  --print-timeout 10m > plan.json
+
+CONV_ID=$(jq -r .conversation_id plan.json)
+PLAN=$(jq -r .response plan.json)
+echo "Plan received from agy session $CONV_ID"
+
+# (Host agent or human evaluates plan here...)
+
+# Phase 2: Resume conversation and execute implementation in Auto mode
+agy -p "The plan is approved. Now implement Step 1 and Step 2 directly in the codebase and run tests." \
+  --conversation "$CONV_ID" \
+  --add-dir . \
+  --mode auto \
+  --output-format json \
+  --dangerously-skip-permissions \
+  --print-timeout 15m > exec.json
 ```
 
 ---
@@ -359,4 +380,105 @@ Version `v1.3.3+` lets an MCP server mark a tool as always loaded so the agent g
   "inputSchema": { "type": "object", "properties": { "query": { "type": "string" } } },
   "_meta": { "antigravity/alwaysLoad": true }
 }
+```
+
+---
+
+## Pattern 23: Detecting Incomplete Runs via `finished_reason`
+Version `v1.4.11+` adds a `finished_reason` field to `--output-format json` and `stream-json` results, replacing stderr grep as the canonical completion detection method. The field is absent on normal completion:
+
+```bash
+#!/usr/bin/env bash
+set -eo pipefail
+
+agy -p "Review the auth module for security vulnerabilities" \
+  --add-dir . \
+  --output-format json \
+  --dangerously-skip-permissions \
+  --print-timeout 8m > out.json 2> err.log
+
+REASON=$(jq -r '.finished_reason // empty' out.json)
+CONV_ID=$(jq -r '.conversation_id' out.json)
+
+case "$REASON" in
+  "")             echo "Complete: $(jq -r .response out.json)" ;;
+  print_timeout)  echo "Partial (timed out). Resume with --conversation $CONV_ID" ;;
+  interrupted)    echo "Canceled before completion." ;;
+  error)          echo "Failed. Check err.log and AGY_ERROR on stderr." ;;
+esac
+```
+
+---
+
+## Pattern 24: Blocking Prompts with Hook Termination
+Version `v1.4.11+` allows `PreInvocation` hooks to terminate a turn before the model is called. Useful for prompt screening, policy enforcement, or data loss prevention:
+
+```json
+// hooks.json
+{
+  "PreInvocation": [
+    {
+      "command": "./hooks/screen-prompt.sh"
+    }
+  ]
+}
+```
+
+The hook script receives `lastUserInput` (`v1.4.7+`) in the JSON on stdin and can return:
+```json
+{
+  "terminationBehavior": "terminate",
+  "errorMessage": {
+    "userMessage": "Blocked: prompt contains production credentials."
+  }
+}
+```
+In headless `-p` runs, this causes a non-zero exit code, enabling CI gate behavior.
+
+---
+
+## Pattern 25: Plugin Validation with Expanded Checks in CI
+Version `v1.4.3+` through `v1.4.9+` expanded `agy plugin validate` to cover hooks, sidecars, component lists, context providers, kebab-case name enforcement, `author`/`homepage`/`repository` fields, and `logo`/`iconUri` paths. Use `--strict --json` for comprehensive CI validation:
+
+```bash
+#!/usr/bin/env bash
+set -eo pipefail
+
+# Full validation covering manifest, skills, agents, rules, hooks, sidecars, context providers
+agy plugin validate ./my-plugin --strict --json > plugin-report.json || EXIT_CODE=$?
+
+# Check specific categories
+jq '.errors[] | select(.category == "hooks" or .category == "context_providers")' plugin-report.json
+
+exit "${EXIT_CODE:-0}"
+```
+
+---
+
+## Pattern 26: Optional Plugin API Keys
+Version `v1.4.12+` supports `"optional": true` for API key providers in `auth.json`, so plugins work without a key at a free rate limit:
+
+```json
+// auth.json
+{
+  "providers": [
+    {
+      "name": "ACME_API_KEY",
+      "description": "API key for ACME service (optional, raises rate limits)",
+      "optional": true
+    }
+  ]
+}
+```
+
+---
+
+## Pattern 27: MCP Root Conversation ID for Nested Subagents
+Version `v1.4.4+` passes `_meta["antigravity.google/root_conversation_id"]` in MCP `tools/call` requests. MCP servers can use this to correlate tool calls from nested subagents back to the top-level conversation:
+
+```python
+# In an MCP server handler
+def handle_tool_call(request):
+    root_id = request.get("_meta", {}).get("antigravity.google/root_conversation_id")
+    # Use root_id for logging, tracing, or session correlation
 ```

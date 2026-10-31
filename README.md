@@ -19,20 +19,22 @@ An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the offic
 
 This is a skill file that teaches AI coding agents (Claude Code, Gemini CLI, Codex, Cursor, etc.) how to use the `agy` command-line tool effectively. It covers:
 
-- Complete flag and subcommand reference for agy v1.4.2
+- Complete flag and subcommand reference for agy v1.4.12
 - Supported capabilities and automation patterns:
   - Multi-turn bidirectional NDJSON event streaming (`--input-format stream-json` and `--output-format stream-json`)
   - Five-tier reasoning effort control (`--effort low|medium|high|xhigh|max`)
   - Native MCP configuration management (`agy mcp add|remove|list|enable|disable`)
   - Remote control background daemon service (`agy remote-control start|status|stop`)
-  - Loopback microphone streaming over SSH (`agy mic-serve`)
-  - Custom Markdown agent configurations (`agent.md`) with subagent rosters and isolation
+  - Two-phase adversarial plan review and automated task execution workflows
+  - Cross-model verification and delegation patterns for host coding assistants (Claude Code, Codex, OpenCode)
+  - Custom Markdown agent configurations (`agent.md`) with subagent rosters and cross-subagent permissions
   - Dedicated 20,000-token rule budget and non-recursive manifest discovery
   - Zero-turn read-only slash command querying (`-p "/quota"`, `-p "/skills"`, etc.)
-  - Kitty terminal graphics rendering for LaTeX math and Mermaid diagrams
-  - Modal Vim editing mode with counted motions and text objects
-  - Auto mode (`--mode auto`) and on-demand conversation compaction (`/compact`)
-  - Plugin marketplace, `agents.json`, and CI-ready `agy plugin validate --strict --json`
+  - Auto mode (`--mode auto`) on macOS, Linux, and Windows 11 24H2+
+  - Completion detection via `finished_reason` (`print_timeout`, `interrupted`, `error`)
+  - Lifecycle hooks with `lastUserInput` prompt inspection and `terminationBehavior: "terminate"`
+  - Plugin authoring, marketplace installs, `agents.json`, and CI-ready `agy plugin validate --strict --json`
+  - Optional plugin API keys (`auth.json`) for unauthenticated rate-limited access
 - Gemini CLI to agy migration guide and flag mapping
 - Best practices for automation, CI/CD, and multi-agent workflows
 - Troubleshooting common issues and structured error handling (`AGY_ERROR` exit code 3)
@@ -50,7 +52,7 @@ Google announced at I/O 2026 (May 19) that Gemini CLI is transitioning to Antigr
 | `resources/delegation_playbook.md` | Guide for AI assistants (Claude Code, Codex, OpenCode) delegating tasks to agy |
 | `resources/agents_and_customization.md` | Custom agent schema, manifests, plugin authoring, skill metadata |
 | `resources/tui_reference.md` | Interactive TUI keybindings, `/diff` and artifact viewers, settings |
-| `examples/usage_patterns.md` | 22 production-ready, runnable automation recipes and workflows |
+| `examples/usage_patterns.md` | 27 production-ready, runnable automation recipes and workflows |
 
 ## Installation
 
@@ -81,7 +83,7 @@ Prefer automation? [Universal Skills Manager](https://github.com/jacob-bd/univer
 
 ## Status
 
-This skill tracks locally installed agy v1.4.2.
+This skill tracks locally installed agy v1.4.12.
 
 ## Support
 

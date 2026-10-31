@@ -1,4 +1,4 @@
-# agy Interactive Interface (TUI) Reference (v1.4.2)
+# agy Interactive Interface (TUI) Reference (v1.4.12)
 
 Detailed reference moved out of `SKILL.md` to keep it under agy's 24 KB skill body limit.
 
@@ -50,7 +50,8 @@ Added in `v1.3.5+`. Free up the context window on demand:
 
 ### 8. `/diff` Viewer Enhancements
 - **Syntax highlighting & folding (`v1.3.5+`)**: Token colors per color scheme with tinted added/removed lines. `Ctrl+O` expands or collapses the fold nearest the cursor and `f` toggles changes-only vs. whole file.
-- **Navigation (`v1.3.1+`, `v1.3.2+`)**: `←`/`→` open the next or previous file, `n`/`N` continue across files, and `Shift+Tab` switches to the previous view.
+- **Search (`/`, `v1.4.3+`)**: Highlight matches as you type across diff and files; `Enter` jumps to first match, `n`/`N` step through matches across all files.
+- **Navigation (`v1.3.1+`, `v1.4.8+`)**: `←`/`→` open next/previous file; `[`/`]` in `Per Turn` jump to previous/next turn.
 - **Commit Tree (`v1.4.0+`)**: Shows the latest 100 commits with scrolling; `Enter` opens the selected commit.
 
 ### 9. Terminal Status Reporting (OSC 7501)
