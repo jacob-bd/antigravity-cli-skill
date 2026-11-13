@@ -1,106 +1,104 @@
-# agy CLI Quick Reference (v1.4.12)
+# agy CLI Quick Reference (v1.5.7)
+
+## Host-Agent Native Recipes (Zero `--dangerously-skip-permissions`)
+Resolve binary first: `AGY=$(command -v agy || echo "$HOME/.local/bin/agy")`
+Check quota first (0 turns/tokens): `"$AGY" -p "/usage" --output-format json` (warn user if target model's `remaining_fraction < 0.20`).
+
+```bash
+# 1. Plan / Architecture Review (read-only; do NOT use --mode plan)
+"$AGY" --print="Review plan.md for gaps and risks. Max 6 findings + verdict." \
+  --add-dir . --settings '{"agentMode":""}' --output-format json --print-timeout 10m
+
+# 2. Git Diff / Code Review (read-only Git commands allowed)
+"$AGY" --print="Review uncommitted git diff for bugs and security issues. Max 8 findings." \
+  --add-dir . \
+  --settings '{"agentMode":"","permissions":{"allow":["command(git status)","command(git diff)","command(git log)","command(git show)"]}}' \
+  --output-format json --print-timeout 8m
+
+# 3. Scoped Coding + Tests (works on all account tiers)
+"$AGY" --print="Fix <bug> and run <tests>. Keep changes minimal." \
+  --add-dir . --mode accept-edits \
+  --settings '{"toolPermission":"always-proceed","artifactReviewPolicy":"always-proceed"}' \
+  --output-format json --print-timeout 10m
+```
 
 ## All Command-Line Flags
 | Flag | Short | What it does | Added / Updated |
 | :--- | :--- | :--- | :--- |
 | `--print` | `-p`, `--prompt` | Non-interactive single prompt execution | v1.0.0+ |
-| `--input-format <fmt>` | | Input format (`text`, `stream-json` for continuous stdin streaming) | v1.1.15+ |
-| `--output-format <fmt>`| | Output format (`text` (default), `json`, `stream-json` NDJSON events) | v1.1.8+ |
-| `--json-schema <schema>`| | Enforce JSON schema (inline string or file; requires `"type": "object"` root) | v1.1.8+, v1.2.14+ |
+| `--settings <json\|path>` | | Ephemeral session-only `settings.json` overrides (never saved) | v1.5.7+ |
+| `--mode <mode>` | | Execution mode: `accept-edits`, `auto`, `plan` (`v1.5.7+` defaults to `auto` where available) | v1.1.0+, v1.5.7+ |
+| `--model <model>` | | Model slug or tier (`--effort` optional) | v1.0.5+, v1.3.4+ |
 | `--effort <level>` | | Reasoning effort (`low`, `medium`, `high`, `xhigh`, `max`) | v1.1.5+, v1.2.11+ |
-| `--disable-slash-commands`| | Opt out of automatic slash-command and skill expansion in `-p` mode | v1.1.9+ |
-| `--prompt-interactive`| `-i` | Interactive mode with initial prompt | v1.0.0+ |
-| `--continue` | `-c` | Continue most recent conversation (with parent/child dir fallback) | v1.0.0+, v1.2.1+ |
-| `--conversation <id>` | | Resume specific session by ID | v1.0.0+ |
-| `--dangerously-skip-permissions` | | Auto-approve all tool permission prompts (crucial for headless scripts); no longer auto-approves `/plan` plans | v1.0.0+, v1.3.2+ |
-| `--sandbox` | | Restricted terminal execution mode | v1.0.1+ |
-| `--agent <agent>` | | Agent for current session (Markdown or built-in); unknown name exits `1` in `-p` | v1.1.1+, v1.3.4+ |
-| `--model <model>` | | Model slug or tier for current session (`--effort` optional) | v1.0.5+, v1.1.22+, v1.3.4+ |
-| `--mode <mode>` | | Set agent execution mode (`default`, `accept-edits`, `auto`, `plan`) | v1.1.0+, v1.3.5+ |
-| `--print-timeout <dur>`| | Print mode timeout (default: `0s` / unlimited; mid-turn returns partial) | v1.1.28+, v1.2.6+ |
+| `--agent <agent>` | | Agent for session (unknown name exits `1` in `-p`) | v1.1.1+, v1.3.4+ |
 | `--add-dir <path>` | | Add directory to workspace (repeatable) | v1.0.0+ |
-| `--project <id\|name>` | | Explicitly set project ID or project name | v1.0.12+, v1.1.18+ |
-| `--new-project` | | Create a new isolated project context | v1.0.12+ |
+| `--input-format <fmt>` | | Input format (`text`, `stream-json` for continuous stdin NDJSON) | v1.1.15+ |
+| `--output-format <fmt>` | | Output format (`text`, `json`, `stream-json` NDJSON events) | v1.1.8+ |
+| `--json-schema <schema>` | | Enforce JSON schema (requires `"type": "object"` root) | v1.1.8+, v1.2.14+ |
+| `--print-timeout <dur>` | | Print timeout (default `0s` = unlimited; exits `3` if killing background tasks in `v1.5.0+`) | v1.1.28+, v1.5.0+ |
+| `--disable-slash-commands` | | Disable automatic slash-command and skill expansion in `-p` | v1.1.9+ |
+| `--prompt-interactive` | `-i` | Interactive mode with initial prompt | v1.0.0+ |
+| `--continue` | `-c` | Continue most recent conversation (parent/child dir fallback) | v1.0.0+, v1.2.1+ |
+| `--conversation <id>` | | Resume specific session by ID | v1.0.0+ |
+| `--dangerously-skip-permissions` | | Broad tool auto-approval (blocked on protected-command denylist & Enterprise admin review) | v1.0.0+, v1.5.7+ |
+| `--sandbox` | | OS terminal containment (no-op if unavailable; avoid nesting inside host sandboxes) | v1.0.1+, v1.4.4+ |
+| `--remote-agent` | | Run conversations on cloud Remote Agents | v1.5.0+ |
+| `--project <id\|name>` | | Set local or remote project ID or name | v1.0.12+, v1.5.0+ |
+| `--new-project` | | Create isolated project context | v1.0.12+ |
 | `--remote-control` | | Start session with active Remote Control tunnel | v1.2.6+ |
 | `--log-file <path>` | | Override CLI log file path | v1.0.0+ |
 
 ## Key Subcommands
-- `agy mcp list` -- List all configured MCP servers and status
-- `agy mcp add [flags] <name> <cmd|url> [args...]` -- Add stdio or HTTP MCP server (`--type`, `--env`, `--header`)
-- `agy mcp enable/disable <name>` -- Toggle MCP server enablement
-- `agy mcp remove <name>` -- Delete an MCP server configuration
-- `agy remote-control start` -- Start OS-registered background remote service daemon (`--name`, `--session`)
-- `agy remote-control status` -- View background daemon status, active tunnel, and PID
-- `agy remote-control stop` -- Stop and unregister background remote service
-- `agy mic-serve` -- Serve local microphone over loopback/SSH (`--addr`) for `/voice`
-- `agy agent` / `agy agents` -- List available agents (supports `--output-format json|stream-json`)
-- `agy models` -- List available models (supports `--output-format json|stream-json`)
-- `agy plugin list [--json]` -- View installed plugins (`--json` for machine-readable output)
-- `agy plugin validate [path] [--strict] [--json]` -- Validate a plugin like the loader does (`--strict` fails on warnings)
-- `agy plugin install <target>` -- Install plugin (`name@marketplace` or `owner/repo/subpath@branch`)
-- `agy plugin import gemini` -- Migrate legacy Gemini CLI extensions
-- `agy plugin import claude` -- Import Claude extensions
-- `agy plugin enable/disable <name>` -- Toggle plugin enablement
-- `agy update` -- Update to the latest CLI release
-- `agy changelog` -- View release notes
-- `agy install` -- Configure PATH and shell aliases (`--dir`, `--skip-path`, `--skip-aliases`)
+- `agy acp [--login] [--process-per-session] [--ide-mcp-port <port>]` -- Agent Client Protocol stdio server (`v1.5.0+`)
+- `agy mcp list | add | enable | disable | remove` -- Manage MCP servers in `mcp_config.json`
+- `agy remote-control start | status | stop` -- Manage OS background remote-control daemon
+- `agy mic-serve [--addr 127.0.0.1:4713]` -- Forward local microphone over SSH for `/voice`
+- `agy agent` / `agy agents` -- Human-readable agent list (use `agy -p "/agents" --output-format json` for JSON)
+- `agy models` -- Human-readable model list (does not accept `--output-format`)
+- `agy plugin list [--json]` -- View installed plugins
+- `agy plugin validate [path] [--strict] [--json]` -- Validate plugin manifest, skills, agents, rules, hooks (`.findings[]`)
+- `agy plugin install <target> | uninstall <name> | enable/disable <name> | link <mp> <target>` -- Manage plugins
+- `agy plugin import gemini | claude` -- Import Gemini CLI or Claude Code plugins
+- `agy update | changelog | install` -- Update binary, view changelog, configure PATH/aliases
 
 ## Gemini CLI Migration Cheat Sheet
-| Gemini CLI | agy CLI v1.4.12 | Notes |
+| Gemini CLI | agy CLI v1.5.7 | Notes |
 | :--- | :--- | :--- |
-| `gemini -p "prompt"` | `agy -p "prompt"` | Auto-expands slash commands and skills in v1.1.9+ |
-| `gemini --yolo` | `agy --dangerously-skip-permissions` | Complete tool permission auto-approval |
-| `gemini --resume <id>` | `agy --conversation <id>` | Resumes conversation by ID |
-| `gemini -c` | `agy -c` | Continues most recent conversation |
-| `gemini -o stream-json` | `agy -p --output-format stream-json` | Strongly typed NDJSON event stream with token stats |
-| `N/A` | `agy -p --input-format stream-json` | Stdin NDJSON stream for multi-turn continuous runner |
-| `gemini -m <model>` | `agy --model <model>` | Specify model slug |
-| `gemini --approval-mode plan` | `agy --mode plan` | Settles in headless print mode; not implied by `--dangerously-skip-permissions` interactively |
+| `gemini -p "prompt"` | `agy -p "prompt"` | Auto-expands leading slash commands/skills |
+| `gemini --yolo` | `agy --mode accept-edits --settings '{"toolPermission":"always-proceed"}'` | Or `--dangerously-skip-permissions` |
+| `gemini --resume <id>` / `-c` | `agy --conversation <id>` / `agy -c` | Resumes by ID or continues latest |
+| `gemini -o stream-json` | `agy -p --output-format stream-json` | Typed NDJSON stream with `finished_reason` |
+| `N/A` | `agy -p --input-format stream-json` | Stdin NDJSON stream for multi-turn sessions |
+| `gemini -m <model>` | `agy --model <model>` | Explicit model slug |
+| `gemini --approval-mode plan` | `agy --settings '{"agentMode":""}'` (review) / `--mode plan` (draft) | Review critique vs interactive plan drafting |
 | `gemini --approval-mode auto_edit` | `agy --mode accept-edits` / `--mode auto` | `auto` also approves safe commands |
-| `gemini extensions list` | `agy plugin list` | Managed via plugin subsystem |
-| `gemini extensions install`| `agy plugin install <target>` | Supports marketplaces and GitHub subpaths |
-| `N/A` | `agy plugin import gemini` | Automatic migration of Gemini extensions |
+| `gemini extensions list\|install` | `agy plugin list\|install` | Migrate via `agy plugin import gemini` |
 
 ## Environment Variables
-- `GEMINI_API_KEY` -- Direct API key authentication without interactive login (`modelProvider: "gemini"`).
-- `GOOGLE_GEMINI_BASE_URL` -- Custom endpoint URL for Gemini API requests.
-- `USE_ADC=1` -- Authenticate via Application Default Credentials.
-- `AGY_CLI_HIDE_ACCOUNT_INFO=true` -- Hide user email and plan tier details from terminal header.
-- `AGY_CLI_HIDE_LOGO=true` -- Hide ASCII banner art in header for screen readers or narrow viewports.
-- `AGY_CLI_DISABLE_LATEX=true` -- Globally disable LaTeX math rendering in terminal.
-- `CLI_GRAPHICS=kitty` -- Force Kitty graphics mode inside tmux or multiplexers.
-- `AGY_CLI_DISABLE_ESCAPE_SEQUENCE_OPTIMIZATIONS=1` -- Bypass dirty-rectangle renderer optimizations.
-- `AGY_CLI_CMD_OUTPUT_PERCENTAGE` -- Set max height of command outputs in TUI.
-- `ANTIGRAVITY_CLI_ALIAS` -- Override automatic binary name detection.
-- `AGY_CLI_OSC7501=on|off` -- Force or disable terminal tab status reporting (working / waiting / done / failed).
-- `AGY_CLI_OSC7501_MESSAGES=brief` -- Show status only, without pending command or question details.
+- `GEMINI_API_KEY` / `GOOGLE_GEMINI_BASE_URL` -- Direct Gemini API key auth (`modelProvider: "gemini"`).
+- `USE_ADC=1` / `AGY_ADC_AUTH` -- Application Default Credentials (Gemini 4 Carbon + PAYG Auto mode in `v1.5.5+`–`v1.5.6+`).
+- `ANTIGRAVITY_DISABLE_EMBEDDED_RIPGREP=true` -- Disable bundled `ripgrep` extraction (`v1.5.5+`).
+- `AGY_CLI_MAC_OPTION_AS_ALT=0` -- Disable default macOS Option-as-Alt shortcuts (`v1.5.2+`).
+- `AGY_CLI_OSC7501=on|off` -- Terminal tab status reporting (`AGY_CLI_OSC7501_MESSAGES=brief`).
+- `CLI_GRAPHICS=kitty` -- Force Kitty graphics mode inside `tmux` / `screen`.
+- `AGY_CLI_HIDE_ACCOUNT_INFO=true` / `AGY_CLI_HIDE_LOGO=true` / `AGY_CLI_DISABLE_LATEX=true`.
+- `AGY_CLI_DISABLE_ESCAPE_SEQUENCE_OPTIMIZATIONS=1` / `AGY_CLI_CMD_OUTPUT_PERCENTAGE` / `ANTIGRAVITY_CLI_ALIAS`.
 
 ## TUI Panels, Shortcuts & Keybindings
-- **Modal Vim Editing**: Enable in `/settings` -> `Editor Mode` -> `Vim`. Supports counts (`3dw`, `2di(`), Normal/Insert/Visual/Visual Line modes, and `vim.*` keybindings.
-- `/model <name>`: Switch active default model.
-- `/model <name> <prompt>`: Execute a single turn on `<name>` and automatically revert back to original model.
-- `/effort <level>`: Adjust reasoning effort (`low`, `medium`, `high`, `xhigh`, `max`) with timeline-gauge.
-- `/codesearch` (aliases `/cs`, `/search`): Regex/literal (`-F`) workspace search with path filters (`f:`).
-- `/copy`: Copy most recent response. `/copy <n>` copies n-th response. `/copy btw` copies `/btw` response.
-- `/voice` or `F5`: Start/stop voice speech-to-text dictation.
-- `/skills reload`: Hot-reload skills and slash commands without restarting.
-- `/permissions`: Interactive TUI panel to manage permission allowlists.
-- `/resume`: Resume picker. `Ctrl+F` toggles directory grouping (`pickerGrouping` setting).
-- Artifact Viewer: `m` cycles display mode (Image, ASCII fallback, Raw source); `t` opens outline; `Left`/`Right` pans diagrams; `Ctrl+D`/`Ctrl+U` half-page scrolls; `Ctrl+G` opens in `$EDITOR`.
-- `/config`: Use `←` / `→` arrow keys to change highlighted settings immediately without opening dropdowns.
-- `/compact [message]`: Summarize the conversation to free context; with a message, answer it afterwards.
-- `/plugin`: Interactive plugin marketplace manager (`install`, `uninstall`, `enable`, `disable`, `list`).
-- `Shift+Tab`: Cycle agent modes (including Auto).
-- `alt+m` (`Option+m` on macOS): Send using the opposite of your Queued Messages setting.
-- `/diff`: `←`/`→` switch files, `/` search with match counts (`v1.4.3+`), `[`/`]` Per Turn jump (`v1.4.8+`), `n`/`N` next match, `Ctrl+O` fold, `f` toggle changes-only.
+- `/swarm <task>` & `/swarm board` (`Alt+S` open, `Alt+X` dismiss tray, `v1.5.5+`–`v1.5.6+`) -- Multi-agent swarm coordinator + live board.
+- `/projects` (`v1.5.0+`) -- Create, edit, and switch local or remote projects.
+- `/btw <query>` (`v1.5.0+`) -- Side question that can call read-only tools live.
+- `/compact [message]` (`v1.3.5+`) -- Summarize conversation to free context.
+- `/model <name> [prompt]` -- Switch model or run a one-shot turn on `<name>`.
+- `/effort <level>` -- Adjust reasoning effort (`low`–`max`).
+- `/codesearch` (`/cs`, `/search`), `/copy [n|btw]`, `/voice` (`F5`), `/skills reload`, `/permissions`, `/plugin`.
+- `/diff`: `←`/`→` switch files, `/` search, `[`/`]` Per Turn jump, `n`/`N` next match, `Ctrl+O` fold, `f` changes-only.
+- `/config`: `←`/`→` cycles settings; `full screen (altscreen)` (`v1.5.0+` label); `alt+m` opposite-send; `Shift+Tab` cycle modes.
+- `/resume`: `Ctrl+F` workspace grouping. Artifact Viewer: `m` mode, `t` outline, `Ctrl+D`/`Ctrl+U` scroll, `Ctrl+G` `$EDITOR`.
 
-## Automation Patterns & Exit Codes
-- **Continuous Stdin Streaming**: `agy -p --input-format stream-json --output-format stream-json --dangerously-skip-permissions`
-- **Headless Skill Execution**: `agy -p "/my-skill test this feature" --dangerously-skip-permissions`
-- **Zero-Turn Stats**: `agy -p "/quota" --output-format json` (no quota spent, no agent turn started)
-- **Subagent Direct Prompting**: `@<subagent-name> <task instruction>`
-- **Completion Detection (`v1.4.11+`)**: Result contains `finished_reason` (`print_timeout`, `interrupted`, `error`) if ended early; omitted on clean completion.
-- **Exit Code 0**: Clean success (or graceful partial return on timeout expiration; inspect `finished_reason`).
-- **Exit Code 1**: Invalid flags, invalid non-object `--json-schema`, unknown `--agent` in `-p` mode, or terminated by hook (`v1.4.11+`).
-- **Exit Code 2**: Print-mode usage error (e.g. `--print` with `--prompt-interactive`).
-- **Exit Code 3**: Fatal agent/model API error with structured `AGY_ERROR: {...}` line on stderr.
+## Automation Output & Exit Codes
+- **Check both exit code and JSON fields**: `finished_reason` (`print_timeout`, `interrupted`, `error`; omitted when clean) and `denied_actions[]`.
+- **Exit 0**: Clean success, or mid-turn `--print-timeout` partial output.
+- **Exit 1**: Invalid flags, non-object `--json-schema`, unknown `--agent` in `-p`, or `PreInvocation` hook rejection.
+- **Exit 2**: Print-mode usage error (e.g. `-p` with `-i`).
+- **Exit 3**: Fatal API/model error (`AGY_ERROR: {...}` on stderr) OR `--print-timeout` terminating active background tasks (`v1.5.0+`).

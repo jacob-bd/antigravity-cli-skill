@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.7] - 2026-11-13
+
+### Added
+- Agent-first execution contract in `SKILL.md` and `resources/delegation_playbook.md` for host coding agents (Codex CLI, Codex App, Claude Code, OpenCode), including binary fallback resolution (`~/.local/bin/agy`), pre-flight zero-turn quota checks (`agy -p "/usage" --output-format json`) with low-usage warnings and pool-switching advice, and native ephemeral `--settings` recipes that eliminate `--dangerously-skip-permissions` approval prompts.
+- Ephemeral `--settings <json|path>` session override flag (`agy` v1.5.7+).
+- `agy acp` subcommand reference for running an Agent Client Protocol (ACP) stdio server (`agy` v1.5.0+–v1.5.4+).
+- `--remote-agent` flag and `/projects` local/remote project management (`agy` v1.5.0+–v1.5.3+).
+- Parallel multi-agent Swarms (`/swarm`, `/swarm board` with `Alt+S` / `Alt+X`, Kitty graphics bee visuals) and isolated `/teamwork` state directories (`agy` v1.5.5+–v1.5.6+).
+- Enriched hook payloads (`hookEventName`, `cwd`, `toolCall.id`), `Stop` hook `continuation_active` loop guard, and `PLUGIN_ROOT` / `PLUGIN_DATA` hook environment variables (`agy` v1.5.3+–v1.5.6+).
+- `ANTIGRAVITY_DISABLE_EMBEDDED_RIPGREP=true` (`agy` v1.5.5+), default macOS Option-as-Alt shortcuts (`AGY_CLI_MAC_OPTION_AS_ALT=0`, `agy` v1.5.2+), Gemini 4 Carbon/Hydrogen models, PAYG `AGY_ADC_AUTH` Auto mode, and `${HOME}` in `sidecar.json` (`agy` v1.5.0+–v1.5.7+).
+- Usage patterns 28–33 covering pre-flight quota gating, `--settings` overrides, `agy acp`, `--remote-agent`, `/swarm`, and loop-safe `Stop` hooks.
+
+### Changed
+- Updated default execution mode behavior (`v1.5.7` defaults unconfigured sessions to `auto` where available; `toolPermission: "strict"` takes precedence over `auto` and `accept-edits`).
+- Replaced blanket `--dangerously-skip-permissions` and `--mode plan` review patterns across `SKILL.md`, `resources/delegation_playbook.md`, `resources/cheat_sheet.md`, and `examples/usage_patterns.md` with verified `--settings` recipes and `.denied_actions[]` verification.
+- Updated `--print-timeout` documentation for `v1.5.0+` (unlimited runs wait for background tasks; timeout killing active background tasks exits `3` with `AGY_ERROR`).
+- Documented `agy plugin` security/import updates (`uninstall`, `link`, Claude Code `skills`/`commands`/`hooks.json` conversion, atomic installs, `.agents/{plugins,skills}.json` workspace confinement, and `${PLUGIN_ROOT}` validation warning).
+
+### Fixed
+- Removed invalid `--mode default` references (`valid: accept-edits, auto, plan`; use `--settings '{"agentMode":""}'` for request-review mode).
+- Fixed `resources/cheat_sheet.md` claiming `agy agent` and `agy models` accept `--output-format`, deduplicated `agy models` in `SKILL.md`, and fixed `examples/usage_patterns.md` referencing `.errors[]` instead of `.findings[]` on `agy plugin validate --json`.
+
 ## [1.4.12] - 2026-10-31
 
 ### Added

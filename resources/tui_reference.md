@@ -1,58 +1,61 @@
-# agy Interactive Interface (TUI) Reference (v1.4.12)
+# agy Interactive Interface (TUI) Reference (v1.5.7)
 
 Detailed reference moved out of `SKILL.md` to keep it under agy's 24 KB skill body limit.
 
 ## Interactive Interface, Keybindings & Navigation
 
 ### 1. Modal Vim Editing Mode
-Added in `v1.1.11+` and expanded in `v1.2.9+` and `v1.2.12+`. Configure in `/settings` under `Editor Mode` -> `Vim`:
+Added in `v1.1.11+` and expanded in `v1.2.9+`, `v1.2.12+`, `v1.4.9+`, and `v1.5.6+`. Configure in `/settings` under `Editor Mode` -> `Vim`:
 - **Modes**: Normal, Insert, Visual, Visual Line. Mode status badge rendered in status line.
-- **Motions & Counts**: Full support for count multipliers (e.g. `3dw`, `2d3w`, `3dd`, `3x`, `[count]G`, `2di(`).
-- **Submissions**: Submit directly from Normal mode via `Ctrl+S` or `Ctrl+Enter`.
+- **Motions & Counts**: Count multipliers (`3dw`, `2d3w`, `3dd`, `3x`, `[count]G`, `2di(`), plus `r<space>`, `f<space>`, `df<space>` (`v1.4.9+`).
+- **Undo/Redo Cursor (`v1.5.6+`)**: `u` and redo return the cursor to where the edit was made instead of jumping to the end of the prompt.
+- **Submissions**: Submit from Normal mode via `Ctrl+S` or `Ctrl+Enter`.
 - **Insert First Option**: Opens prompt in Insert mode where bare `Enter` submits and `Shift+Enter` / `Ctrl+J` inserts newlines.
-- **Keybinding scopes**: Full customization in `keybindings.json` under `vim.*`.
+- **Keybinding scopes**: Customize in `keybindings.json` under `vim.*`.
 
 ### 2. One-Shot Model Switching (`/model`)
-Added in `v1.1.22+` and `v1.1.27+`:
-- Switch default model: `/model <name>`.
-- **One-shot execution**: `/model <name> <prompt>` executes a single turn using `<name>` and automatically reverts back to the original model on the subsequent turn.
+- Switch default model: `/model <name>` (accepts base names without `--effort` since `v1.3.4+`).
+- **One-shot execution (`v1.1.27+`)**: `/model <name> <prompt>` executes a single turn on `<name>` and automatically reverts back to the original model.
 
 ### 3. Settings Fast Navigation (`/config` & `/settings`)
-- As of `v1.2.16+`, press `←` / `→` arrow keys on any highlighted setting to cycle values immediately without opening dropdown menus.
-- **Queued Messages (`v1.2.14+`)**: Configure `"queuedMessages": "queue"` (default) or `"send-immediately"` to interrupt the active turn when follow-up messages are entered.
-- **Opposite Send (`alt+m`, `v1.4.0+`)**: Press `alt+m` (`Option+m` on macOS when Option acts as Alt) to send a message using the opposite of your `Queued Messages` setting: send right away in `queue` mode, or queue in `send-immediately` mode.
-- **Verbosity Modes (`v1.2.10+`)**:
-  - `high`: Full tool calls, parameter payloads, and thoughts.
-  - `medium` (default since `v1.3.0`): Groups related tool calls into concise summaries (e.g. `Explored 14 files`) while preserving command outputs.
+- **Arrow Cycling (`v1.2.16+`)**: Press `←` / `→` on any highlighted setting to cycle and save immediately.
+- **Rendering Mode (`v1.5.0+`)**: `no flickering (altscreen)` was renamed to `full screen (altscreen)` (saved setting key `altScreenMode` unchanged).
+- **Queued Messages (`v1.2.14+`)**: `"queuedMessages": "queue"` (default) or `"send-immediately"`.
+- **Opposite Send (`alt+m`, `v1.4.0+`, native macOS Option `v1.5.2+`)**: Sends using the opposite of your `Queued Messages` setting. macOS Option shortcuts work out of the box since `v1.5.2+` (set `AGY_CLI_MAC_OPTION_AS_ALT=0` to revert).
+- **Verbosity Modes (`v1.2.10+`, default `medium` `v1.3.0+`)**:
+  - `high`: Full tool calls, payloads, and thoughts.
+  - `medium`: Groups related tool calls into summaries (e.g. `Explored 14 files`) while keeping command outputs.
   - `low`: Minimal output with token metric tables.
 
-### 4. Artifact Detail Viewer
-- **Inline Kitty Graphics (`v1.2.7+`)**: Renders LaTeX formulas (`$$...$$`, fenced `latex`/`math`) and Mermaid diagrams directly in the terminal viewport on Kitty-compatible terminals.
-- **Display Modes (`m`)**: Press `m` in the artifact viewer to cycle between Image, Unicode ASCII fallback, and Raw source.
-- **Diagram Panning**: Use `Left` / `Right` arrow keys to horizontally pan oversized diagrams.
-- **Outline Navigation (`t`)**: Press `t` to open a table-of-contents outline and jump directly to sections (`v1.1.12+`).
-- **Half-page scrolling**: Use `Ctrl+D` and `Ctrl+U` (`v1.1.26+`).
-- **External Editor**: Press `Ctrl+G` to open the artifact in `$EDITOR`.
+### 4. Swarms & Live Board (`/swarm`, `v1.5.5+`–`v1.5.6+`)
+- **`/swarm <task>`**: Starts a coordinator + parallel worker swarm with a shared message board.
+- **Active-Items Tray**: Shows `● Swarm(<title>)` with latest post/count while running and `Done` when finished (`Enter` opens board; `alt+x` / `swarm.dismiss` dismisses).
+- **`/swarm board` (`alt+s` / `swarm.board`)**: Full-screen view with `Roster`, `Posts`, and `Message` panes (plus Kitty graphics bee animations / pixel-art queen in `v1.5.6+`):
+  - `Tab` / `Shift+Tab`: Switch panes
+  - `z`: Zoom focused pane
+  - `Enter`: Show or hide message
+  - `[` / `]`: Step through posts
+  - `p`: Filter feed to one member's posts and mentions
+  - `o`: Open member subagent details (`Esc` returns to board preserving state, `v1.5.6+`)
+  - `f`: Follow new posts; `Esc`: Back out
 
-### 5. Response & Content Clipboard (`/copy`)
-- `/copy`: Copies the most recent response.
-- `/copy <n>`: Copies the n-th most recent response (`v1.1.6+`).
-- `/copy btw`: Copies the active `/btw` side-question response (`v1.2.3+`).
+### 5. Local Projects & Remote Agent Sessions (`v1.5.0+`–`v1.5.2+`)
+- **`/projects` (`v1.5.0+`)**: List projects (with current marked), create a project from a name and folder paths (absolute, `~`, or relative), rename/edit folders, or switch projects (adds folders to workspace and starts a new conversation).
+- **`--remote-agent` TUI (`v1.5.0+`–`v1.5.2+`)**: Header shows `remote workspace`; `@`-mention searches remote files; `/config` separates `TUI` and `Remote Agent` tabs; `/skills` lists connected cloud plugin skills under `Remote agent skills`.
 
-### 6. Workspace Grouping in `/resume`
-Toggle between a flat list and conversations grouped by directory using `Ctrl+F` (`v1.1.25+`). Persist the default with `"pickerGrouping": "workspace"` in `settings.json`.
+### 6. Side Questions (`/btw`, `v1.5.0+`)
+- `/btw <query>` can call read-only tools live inside the `/btw` card and reports `Called N tools` when done; permission-requiring tools are auto-denied so quick questions never block.
 
-### 7. Conversation Compaction (`/compact`)
-Added in `v1.3.5+`. Free up the context window on demand:
-- `/compact`: Summarizes the conversation and ends the turn.
-- `/compact <message>`: Summarizes the conversation, then answers your message.
-- A `Compacting conversation...` label is shown while it runs (cancel with `Esc`), followed by how many steps were summarized and how much smaller the context became.
+### 7. Artifact Detail Viewer & Native Media Paste
+- **Inline Kitty Graphics (`v1.2.7+`)**: Renders LaTeX and Mermaid diagrams on Kitty-compatible terminals.
+- **Controls**: `m` cycles display mode (Image, ASCII, Raw); `t` opens outline; `Left`/`Right` pans diagrams; `Ctrl+D`/`Ctrl+U` half-page scrolls; `Ctrl+G` opens in `$EDITOR`.
+- **Image Paste & Drag-and-Drop (`v1.4.9+`)**: Terminal `Cmd+V` / `Ctrl+Shift+V` and file drag-and-drop attach images directly (including over SSH with X11/Wayland forwarding).
 
-### 8. `/diff` Viewer Enhancements
-- **Syntax highlighting & folding (`v1.3.5+`)**: Token colors per color scheme with tinted added/removed lines. `Ctrl+O` expands or collapses the fold nearest the cursor and `f` toggles changes-only vs. whole file.
-- **Search (`/`, `v1.4.3+`)**: Highlight matches as you type across diff and files; `Enter` jumps to first match, `n`/`N` step through matches across all files.
-- **Navigation (`v1.3.1+`, `v1.4.8+`)**: `←`/`→` open next/previous file; `[`/`]` in `Per Turn` jump to previous/next turn.
-- **Commit Tree (`v1.4.0+`)**: Shows the latest 100 commits with scrolling; `Enter` opens the selected commit.
+### 8. Clipboard (`/copy`), Resume (`/resume`), Compact (`/compact`) & `/diff`
+- `/copy`: Copies latest response; `/copy <n>` copies n-th response; `/copy btw` copies `/btw` answer.
+- `/resume`: `Ctrl+F` toggles directory grouping (`pickerGrouping`).
+- `/compact [message]`: Summarizes conversation to free context; with a message, answers it afterward (`Esc` cancels).
+- `/diff` Viewer: Syntax highlighting & folding (`Ctrl+O` fold, `f` changes-only), `/` live search (`n`/`N` next/prev match), `←`/`→` switch files, `[`/`]` Per Turn jump, Commit Tree (`Enter` opens commit).
 
 ### 9. Terminal Status Reporting (OSC 7501)
-Added in `v1.4.0+`. In supporting terminals the tab or window shows whether the CLI is working, waiting for input, done, or failed. Control it with `AGY_CLI_OSC7501=on|off` and `AGY_CLI_OSC7501_MESSAGES=brief`.
+Added in `v1.4.0+`. Shows working / waiting / done / failed state in supporting terminal tabs. Control via `AGY_CLI_OSC7501=on|off` and `AGY_CLI_OSC7501_MESSAGES=brief`.

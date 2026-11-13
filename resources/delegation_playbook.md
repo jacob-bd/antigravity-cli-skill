@@ -1,231 +1,208 @@
-# Delegating Work to agy (Host CLI Guide)
+# Delegating Work to `agy` (Host Agent Playbook)
 
-This guide is for AI coding assistants (Claude Code, OpenAI Codex CLI, OpenCode, Cursor, Aider, etc.) that want to delegate tasks to Google's Antigravity CLI (`agy`) as an external reasoning, review, or coding worker.
+This playbook is for AI coding agents (**Codex CLI, Codex App, Claude Code, OpenCode, Cursor, Aider**) delegating reviews, second-opinion reasoning, or implementation tasks to Google's Antigravity CLI (`agy` v1.5.7).
 
-By delegating heavy-lifting, plan reviews, or code reviews to `agy`, host assistants can save context window capacity, leverage Google Gemini models (e.g. Gemini 3.8 Pro/Flash), and benefit from diverse cross-model verification.
-
----
-
-## The Golden Mechanics of `agy -p`
-
-When delegating commands from another agent or terminal environment, remember:
-
-1. **Always pass `--dangerously-skip-permissions` in headless runs**: Without this flag, `agy` will block waiting for interactive user permission prompts on stdin and appear to hang. It is broad tool auto-approval, not an isolation boundary (see "Permissions and Isolation").
-2. **Explicit Workspace Scoping (`--add-dir .`)**: When launching `agy` in a repository or directory, pass `--add-dir .` (or `--add-dir /path/to/target`). `agy` uses persistent workspace mappings; passing `--add-dir` ensures tools can read and write within that target path. It grants scope; it is not proof of exclusive filesystem isolation.
-3. **Set a Safe Print Timeout (`--print-timeout <duration>`)**: Headless print mode defaults to `0s` (unlimited). For automated scripts, pass `--print-timeout 8m` or `10m` so processes never become zombies if the network drops. A fired timeout still exits `0` with `status: SUCCESS` and partial output, so always run the completion check before trusting a result.
-4. **Choose the Output Format (`--output-format json` or `stream-json`)**:
-   - `json`: Emits `{"conversation_id": "...", "status": "SUCCESS", "response": "...", "duration_seconds": ..., "num_turns": ..., "usage": {...}}` when the process exits. The response string is in `.response`.
-   - `stream-json`: Emits line-delimited NDJSON events (`init`, `step_update`, `result`) for live progress; see "Reading stream-json Events".
-5. **Continuous Multi-Turn (`--conversation <id>`)**: Every completion returns a `conversation_id`. Host agents can ask follow-up questions, request iterative revisions, or recover a cut-off run on the exact same context by passing `--conversation <id>`.
-6. **Attach the Prompt to the Flag (`--print='...'`)**: Use the attached argv form (`agy --print='analyze src/'`) to avoid prompt/flag ambiguity when the text begins with dashes or is passed programmatically. The separate positional form `agy -p "..."` is fine for simple prompts.
+Delegating to `agy` preserves host context, gives access to Gemini 4 Carbon / Hydrogen / Argon and Gemini 3.8 Flash, and provides independent cross-model verification.
 
 ---
 
-## Incomplete Runs: Detection, Recovery, and Bounded Reviews
+## Pre-Flight: Binary & Quota Check (Zero Cost)
 
-### The false-success trap
-
-When `--print-timeout` fires mid-turn, `agy` exits with code **`0`** and JSON `"status": "SUCCESS"` plus whatever partial output exists. The primary way to detect this is the `finished_reason` field in the JSON result: it is set to `print_timeout`, `interrupted`, or `error` when the turn ended early, and **omitted entirely** on normal completion. A stderr marker also appears as a fallback signal:
-
-```text
-[agy] print timeout after 6m0s with turn in progress; returning partial output
-```
-
-### Mandatory completion check
-
-Treat a run as finished only after all of these pass:
-
-| Check | Complete | Incomplete |
-| :--- | :--- | :--- |
-| Exit code | `0` | non-zero: take the error path below |
-| stdout JSON | parses, `finished_reason` absent | `finished_reason` is `print_timeout`, `interrupted`, or `error` |
-| `response` | non-empty report | empty response with `num_turns: 0` and zero `usage`: nothing was collected |
-
-Record a host-side outcome such as `complete` / `partial_timeout` / `failed`, and never silently label partial output as finished.
+1. **Resolve the executable** (non-login shells often omit `~/.local/bin`):
+   ```bash
+   AGY=$(command -v agy || echo "$HOME/.local/bin/agy")
+   ```
+2. **Check model quota before heavy delegation** (`0` turns, `0` tokens spent):
+   ```bash
+   "$AGY" -p "/usage" --output-format json
+   ```
+   Check `.command.data.groups[].buckets[]` for the model you plan to use (`id`, `name`, `remaining_fraction`, `reset_time`):
+   - **Warn the user** before launching if `remaining_fraction < 0.20` (or `0`), including the percentage left and `reset_time` (ISO-8601 UTC).
+   - **Quota pool fallback**: Gemini Pro, Gemini Flash, and Claude/GPT models use **separate quota pools** (`groups[].description`). If your preferred model's pool is low or exhausted, suggest switching `--model` to an available pool (`"$AGY" models` lists slugs).
+   - Do not run `"/credits"` unconditionally in scripts; accounts without AI credits exit `1`.
 
 ```bash
-agy -p "$PROMPT" --output-format json ... > out.json 2> err.log
-REASON=$(jq -r '.finished_reason // empty' out.json)
-if [ -n "$REASON" ]; then OUTCOME="$REASON"; else OUTCOME=complete; fi
+# Example: inspect remaining fraction for gemini-4-carbon-high
+"$AGY" -p "/usage" --output-format json | jq -r '
+  .command.data.groups[].buckets[]
+  | select(.id == "gemini-4-carbon-high")
+  | "\(.name): \((.remaining_fraction * 100) | round)% remaining (resets \(.reset_time))"'
 ```
 
-### Recovery recipe: finish from collected evidence
+---
 
-A timed-out run has already done the expensive exploration, so do not restart the whole review. Resume the same conversation, forbid new exploration, and request the final deliverable under a small separate budget:
+## Native Headless Mechanics (Zero `--dangerously-skip-permissions`)
+
+Why host agents must avoid `--dangerously-skip-permissions`:
+- Host coding agents (Codex CLI, Codex App, Claude Code) flag `--dangerously-skip-permissions` in command-safety rules and halt to ask the human for approval even for read-only reviews.
+- In `agy` `-p` mode, unapproved tools **never hang on stdin** — they fail immediately and appear in stdout JSON under `.denied_actions[]`.
+- `agy` `v1.5.7` adds ephemeral `--settings '<json>'` overrides that configure permissions for the single invocation without touching `~/.gemini/antigravity-cli/settings.json`.
+
+Core rules:
+1. **Always pass `--add-dir .`** (or target path): `agy` tracks persistent workspace mappings; `cd` alone does not scope a directory.
+2. **Never pass `--mode plan` for critiques or code reviews**: `--mode plan` is an interactive plan-drafting mode that writes an internal `plan.md` artifact and stops asking for plan approval. Use `--settings '{"agentMode":""}'` so `agy` reads workspace files natively, returns its critique directly in `.response`, and engine-blocks edits/shell commands.
+3. **Never pass `--mode default`** (rejected with a warning; valid `--mode` values are `accept-edits`, `auto`, `plan`). Always set `--mode` or `--settings` explicitly because `v1.5.7+` defaults unconfigured sessions to `auto` where available and warns on Business/Enterprise accounts.
+4. **Do not nest `--sandbox` inside an outer agent sandbox**: If the host agent runs in macOS Seatbelt or Linux Landlock (e.g., Codex), nested `--sandbox` fails or blocks `~/.gitconfig` and state files. Request host network/sandbox access for the `agy` call itself when needed.
+5. **Set `--print-timeout` (e.g. `8m`–`15m`)**: Default is `0s` (unlimited, waiting on background tasks in `v1.5.0+`). Always run the completion check below before trusting output.
+6. **Attach prompt text with `--print='...'`** when passing programmatic or dash-prefixed text to avoid CLI flag parsing ambiguity.
+
+---
+
+## Native Delegation Recipes
+
+### 1. Plan / Architecture Review (Read-Only, Zero Prompts)
+
+Runs workspace file reads/searches natively, engine-blocks writes and shell commands, and avoids both `--dangerously-skip-permissions` and `--mode plan`.
+
+```bash
+"$AGY" --print="Perform an adversarial plan review of docs/rfc-001.md. Challenge assumptions, edge cases, failure modes, and data loss risks. Return at most 6 findings ranked by severity, ending with a verdict. Reserve time for the final report." \
+  --add-dir . \
+  --settings '{"agentMode":""}' \
+  --effort high \
+  --output-format json \
+  --print-timeout 10m > out.json 2> err.log
+```
+
+### 2. Git Diff / Code Review (Read-Only Git Inspection)
+
+Allows read-only Git commands (`status`, `diff`, `log`, `show`) while engine-blocking file edits and arbitrary commands.
+
+```bash
+"$AGY" --print="Review the uncommitted git diff in this repository for race conditions, security vulnerabilities, and edge-case bugs. Return at most 8 findings categorized by severity." \
+  --add-dir . \
+  --settings '{"agentMode":"","permissions":{"allow":["command(git status)","command(git diff)","command(git log)","command(git show)"]}}' \
+  --output-format json \
+  --print-timeout 8m > out.json 2> err.log
+```
+
+*Structured schema variant:*
+```bash
+"$AGY" --print="Audit src/auth/ for vulnerabilities. Return findings conforming to schema." \
+  --json-schema ./review_schema.json \
+  --add-dir . \
+  --settings '{"agentMode":""}' \
+  --output-format json \
+  --print-timeout 8m > out.json 2> err.log
+```
+
+### 3. Scoped Implementation & Test Execution (Write Mode)
+
+Uses `--mode accept-edits` plus ephemeral `toolPermission: "always-proceed"` and `artifactReviewPolicy: "always-proceed"`. Works uniformly across Personal, Pro/Ultra, and Business/Enterprise accounts without triggering host `--dangerously-skip-permissions` heuristics.
+
+```bash
+"$AGY" --print="Fix the bug in src/payment/processor.py causing test_refund_timeout to fail. Run pytest tests/test_payment.py to verify. Keep changes minimal." \
+  --add-dir . \
+  --mode accept-edits \
+  --settings '{"toolPermission":"always-proceed","artifactReviewPolicy":"always-proceed"}' \
+  --output-format json \
+  --print-timeout 10m > out.json 2> err.log
+```
+
+*Tighter command allowlist alternative* (restrict shell execution strictly to the test runner):
+```bash
+"$AGY" --print="Fix the bug in src/payment/processor.py and run pytest tests/test_payment.py." \
+  --add-dir . \
+  --mode accept-edits \
+  --settings '{"agentMode":"accept-edits","permissions":{"allow":["command(pytest)"]}}' \
+  --output-format json \
+  --print-timeout 10m > out.json 2> err.log
+```
+
+### 4. Follow-Up & Timeout Recovery (`--conversation <id>`)
+
+Every completion returns `.conversation_id`. Resume on the exact same context with delta instructions:
 
 ```bash
 CONVERSATION_ID=$(jq -r .conversation_id out.json)
 
-agy -p "Stop all exploration. Using only the evidence already collected, produce the final report now: at most 6 findings ranked by severity, 600 words maximum, ending with a verdict. Do not use any tools." \
+"$AGY" --print="Stop all exploration. Using only the evidence already collected, produce the final report now: at most 6 findings ranked by severity, 600 words maximum, ending with a verdict. Do not call any tools." \
   --conversation "$CONVERSATION_ID" \
   --add-dir . \
-  --mode plan \
-  --dangerously-skip-permissions \
+  --settings '{"agentMode":""}' \
   --output-format json \
-  --print-timeout 3m
+  --print-timeout 3m > recovery.json 2> err.log
 ```
 
-### Preventing timeouts: bounded review instructions
+### 5. Long-Running Delegation from Host Python Code
 
-A timeout is a budget boundary, not evidence of a deadlock. Bound the work in the request itself:
-
-- **Scope the search**: name the exact files or directories to inspect so the worker does not wander the repository.
-- **Cap the deliverable**: request a small number of source-backed findings, a word budget, and a final verdict.
-- **Reserve a finalization interval**: instruct it to stop exploring in time to write the report (e.g. "spend at most 5 minutes exploring, then report with what you have"). Models often exceed the first budget, which is exactly why the recovery recipe exists.
-- **Size the timeout above the budget**: exploration budget 5m means `--print-timeout 8m`-`10m`. Use `--print-timeout 0` only when the host enforces its own wall-clock deadline.
-- **Watch long runs**: `--output-format stream-json` surfaces live `step_update` events so hosts can detect stalls instead of waiting blind.
-
----
-
-## Permissions and Isolation: What the Flags Do and Do Not Guarantee
-
-- `--dangerously-skip-permissions` is broad tool auto-approval for the session; it does not sandbox the process or restrict which files can be touched.
-- `--mode plan` stops the agent from implementing changes; it is a behavioral guardrail, not an OS-enforced read-only filesystem.
-- `--add-dir <path>` extends the workspace scope; it is not an isolation boundary for other paths.
-- `--sandbox` (macOS/Linux) enables terminal restrictions; effective scope still comes from the instructions you give.
-- For review work that needs stronger isolation, point `agy` at a temporary copy of the tree and compare the copy afterwards; this pattern is in production use by hosts.
-
----
-
-## Delegation Recipes
-
-### 1. Adversarial Plan / Architecture Review (Read-Only)
-
-**Goal:** Get a second-opinion critique of an architectural proposal, RFC, or planned refactor without making changes.
-
-**Mechanics:**
-- Pass `--mode plan` to prevent autonomous file writes.
-- Pass `--output-format json` to capture the structured markdown or JSON response.
-- Use `--effort high` or `--effort max` for complex architectural scrutiny.
-- Bound the review and give it a realistic timeout (see "Incomplete Runs"); expect occasional partial timeouts and recover rather than rerunning.
-
-```bash
-agy -p "Perform an adversarial plan review of docs/rfc-001.md. Challenge assumptions, edge cases, failure modes, and data loss risks. At most 6 findings, end with a verdict. Reserve time for the final report. Do not implement changes." \
-  --add-dir . \
-  --mode plan \
-  --effort high \
-  --output-format json \
-  --dangerously-skip-permissions \
-  --print-timeout 10m
-```
-
-*Completion check:* Check `.finished_reason` in `output.json` (or grep stderr for `print timeout`). If `print_timeout`, treat the run as `partial_timeout` and use the recovery recipe with the returned `conversation_id`.
-
-*Parsing response:*
-```bash
-RESPONSE=$(cat output.json | jq -r .response)
-CONVERSATION_ID=$(cat output.json | jq -r .conversation_id)
-```
-
----
-
-### 2. Code Review on Diff (Read-Only)
-
-**Goal:** Review an uncommitted git diff or branch changes.
-
-**Mechanics:**
-- Pass git status and diff context either directly in the prompt or instruct `agy` to inspect git.
-- If running under `--sandbox`, note that git config in `~/.gitconfig` might be restricted on some platforms; passing the diff or file paths explicitly is recommended.
-- You can optionally enforce a JSON schema on findings using `--json-schema <schema_file>`.
-- Apply the same completion check as Recipe 1; a partial timeout here means findings are incomplete.
-
-```bash
-# Example: Review uncommitted changes
-agy -p "Review the git diff in this repository for race conditions, security vulnerabilities, and edge case bugs. Return findings categorized by severity, at most 8 findings. Do not modify any files." \
-  --add-dir . \
-  --output-format json \
-  --dangerously-skip-permissions \
-  --print-timeout 8m
-```
-
-*Enforcing structured findings:*
-```bash
-agy -p "Audit src/auth/ for vulnerabilities. Return findings conforming to schema." \
-  --json-schema ./review_schema.json \
-  --add-dir . \
-  --output-format json \
-  --dangerously-skip-permissions
-```
-
----
-
-### 3. Delegating Implementation / Coding Tasks (Write Mode)
-
-**Goal:** Have `agy` implement a fix, write a feature, or refactor code in the repository.
-
-**Mechanics:**
-- **Do not** pass `--mode plan`. Use standard execution mode or `--mode auto`.
-- Explicitly pass `--add-dir .` (or the target root) so `agy` has write permissions on the directory.
-- Specify tests or verification commands so `agy` runs them before finishing.
-- Run on a dedicated git branch or worktree if the host AI wants to review before merging.
-- Exit `0` does not prove the work finished; a `partial_timeout` can leave half-edited files. Run the completion check before trusting the diff.
-
-```bash
-# Example: Fix a failing test suite
-agy -p "Fix the bug in src/payment/processor.py causing test_refund_timeout to fail. Run pytest tests/test_payment.py to verify. Keep changes minimal." \
-  --add-dir . \
-  --dangerously-skip-permissions \
-  --output-format json \
-  --print-timeout 10m
-```
-
-*Host AI follow-up:*
-After `agy` exits `0` **and** passes the completion check, the host AI runs `git diff` to inspect changes, runs tests, and presents the diff to the user.
-
----
-### 4. Follow-up & Iteration on Previous Turn
-
-**Goal:** Ask `agy` to fix an issue identified in a review or refine its previous work. This is also the timeout-recovery path.
-
-**Mechanics:**
-- Supply the `--conversation <id>` captured from the previous response.
-- Do not repeat the entire repository context; just provide the delta instruction.
-- For recovery, forbid new exploration and request the final report from evidence already collected.
-
-```bash
-agy -p "In your previous review you flagged a race condition in WorkerPool. Please now generate the code fix directly in src/worker.go." \
-  --conversation "5a70ead4-f77b-43bf-a797-ec0ac5e61816" \
-  --add-dir . \
-  --dangerously-skip-permissions \
-  --output-format json \
-  --print-timeout 5m
-```
-
----
-
-### 5. Long-Running Delegation from Host Code
-
-Process liveness does not establish task completion, and `--print-timeout` is not an orphan-process guarantee. Prefer an argv-array subprocess with a host wall-clock deadline, explicit stdout/stderr files, and the completion check:
+Use an argv array (no shell quoting hazards), private stdout/stderr files, a host wall-clock deadline, and full completion/denial checks:
 
 ```python
-import json, subprocess
+import json, os, shutil, subprocess
 
+agy_bin = shutil.which("agy") or os.path.expanduser("~/.local/bin/agy")
 cmd = [
-    "agy",
+    agy_bin,
     "--print=Refactor db/migrations to the v2 schema and run the migration tests.",
     "--add-dir", ".",
-    "--dangerously-skip-permissions",
+    "--mode", "accept-edits",
+    "--settings", json.dumps({
+        "toolPermission": "always-proceed",
+        "artifactReviewPolicy": "always-proceed",
+    }),
     "--output-format", "json",
     "--print-timeout", "15m",
 ]
 with open("agy.out.json", "w") as out, open("agy.err.log", "w") as err:
-    subprocess.run(cmd, stdout=out, stderr=err, text=True, timeout=20 * 60)
+    proc = subprocess.run(cmd, stdout=out, stderr=err, text=True, timeout=20 * 60)
 
 data = json.load(open("agy.out.json"))
 reason = data.get("finished_reason")
-outcome = reason if reason else ("complete" if data.get("response") else "failed")
-print(outcome, data.get("conversation_id"))
+denied = data.get("denied_actions") or []
+outcome = reason or ("denied" if denied else ("complete" if data.get("response") else "failed"))
+print(proc.returncode, outcome, data.get("conversation_id"))
 ```
-
-- Track the process you started and terminate it on cancellation (argv arrays also avoid shell-quoting traps).
-- Keep stdout/stderr in private files; do not stream raw tool output or token accounting into ordinary status logs.
-- Shell backgrounding with `nohup ... 2> err.log &` still works for quick scripts, but check the stderr marker and JSON before treating the task as done.
 
 ---
 
-## Reading `stream-json` Events (Real Envelopes)
+## Completion Detection, `denied_actions`, and Timeouts
 
-Each stdout line is one JSON object with a top-level `event` field and a payload object under the same name. Real (sanitized) shapes:
+### Mandatory Completion Check
+
+Treat a run as complete only when **all** checks pass:
+
+| Check | Complete | Incomplete / Action Needed |
+| :--- | :--- | :--- |
+| Exit code | `0` | `1`: config/flag/hook error; `2`: usage conflict; `3`: `AGY_ERROR` API failure or background-task `--print-timeout` (`v1.5.0+`) |
+| `finished_reason` | **absent** | `print_timeout`, `interrupted`, or `error` (even when exit code is `0`!) |
+| `denied_actions` | **absent / empty** | Non-empty array (e.g. `[{"action":"write_file","display_name":"Edit"}]`): add needed allow-rule/mode in `--settings` |
+| `response` | non-empty | Empty with `num_turns: 0` and zero `usage`: nothing was collected |
+
+```bash
+REASON=$(jq -r '.finished_reason // empty' out.json)
+DENIED=$(jq -r '.denied_actions | length // 0' out.json)
+if [ -n "$REASON" ]; then
+  OUTCOME="$REASON"
+elif [ "$DENIED" -gt 0 ]; then
+  OUTCOME="denied"
+else
+  OUTCOME="complete"
+fi
+```
+
+### Bounded Review Prompting
+
+Prevent timeouts by bounding the worker in the prompt itself:
+- **Name exact files/directories** to inspect instead of letting the worker scan the whole repo.
+- **Cap output** (e.g., max 6 findings, 600 words, final verdict).
+- **Reserve a finalization window** ("spend at most 5 minutes exploring, then write the report").
+- **Size `--print-timeout` above the exploration budget** (`8m`–`10m` for a `5m` budget).
+- **Use `--output-format stream-json`** when live progress monitoring is needed.
+
+---
+
+## Permissions & Isolation Boundaries
+
+- `--settings '{"agentMode":""}'` restricts `agy` to read-only file/search tools unless `permissions.allow` grants specific commands; unapproved write/command calls fail immediately into `.denied_actions`.
+- `--settings '{"toolPermission":"always-proceed"}'` and `--dangerously-skip-permissions` still **cannot bypass** `agy`'s built-in protected-command denylist (`v1.5.2+`) or Gemini Enterprise admin-enforced review policies (`v1.5.2+`, `v1.5.7+`), where headless runs deny restricted actions rather than prompting.
+- `--add-dir <path>` extends workspace scope; it does not isolate other paths.
+- For strict read-only guarantees on untrusted code, run `agy` against a temporary copy or `git worktree`.
+
+---
+
+## Reading `stream-json` Events
+
+Each stdout line is one JSON object with a top-level `event` key and matching payload object:
 
 ```json
 {"event": "init", "conversation_id": "9f1c7a2e-0000-0000-0000-000000000000", "init": {"cwd": "/repo", "permission_mode": "always-proceed", "tools": ["read_file", "run_command"]}}
@@ -234,28 +211,33 @@ Each stdout line is one JSON object with a top-level `event` field and a payload
 {"event": "result", "result": {"conversation_id": "9f1c7a2e-0000-0000-0000-000000000000", "status": "SUCCESS", "finished_reason": "print_timeout", "response": "ok\n", "duration_seconds": 36.47, "num_turns": 1, "usage": {"input_tokens": 23463, "output_tokens": 36, "thinking_tokens": 35, "cache_read_tokens": 0, "total_tokens": 23499}}}
 ```
 
-- Parser rule: key only on `event`, `step_update.state`, `step_update.step_type`, `step_update.text_delta`, and `result.*`; ignore unknown fields. There is no flat `type` field.
-- Tool steps carry `tool_info` (name, args, output) and subagent steps carry `subagent_info` inside their `step_update` payload.
-- `finished_reason` is present only when the turn ended early (`print_timeout`, `interrupted`, `error`); absent on normal completion.
-- Keep token counts, account details, and raw tool output out of ordinary status logs.
+- Key parsers only on `event`, `step_update.state`, `step_update.step_type`, `step_update.text_delta`, and `result.*`; ignore unknown fields.
+- Tool steps carry `tool_info`; subagent steps carry `subagent_info`.
+- `finished_reason` appears only when ended early (`print_timeout`, `interrupted`, `error`).
 
 ---
 
-## Exit Codes & Error Handling for Host Scripts
+## Persistent Editor Integration: `agy acp`
 
-| Exit Code | Meaning | Host AI Action |
+When integrating `agy` into an IDE or persistent agent client instead of one-shot `-p` subprocesses, use `agy acp` (`v1.5.0+`–`v1.5.4+`):
+- Runs an Agent Client Protocol (ACP) JSON-RPC server over stdio (`--stdio` default).
+- Supports `--process-per-session`, `--ide-mcp-port <port>`, `--agent <name>`, `--add-dir <path>`, `auto` / `accept-edits` / `plan` / `default` modes, `session/resume`, and `agy acp --login` for terminal auth over SSH.
+
+---
+
+## Exit Codes Reference
+
+| Exit Code | Meaning | Host Agent Action |
 | :--- | :--- | :--- |
-| `0` | Success, or a `--print-timeout` cut returning partial output | Check `finished_reason` in the JSON result (`print_timeout`, `interrupted`, `error`); absent means complete. Recover incomplete runs on the same conversation. |
-| `1` | Configuration error, invalid CLI flags, invalid `--json-schema` | Check stderr; fix invocation parameters. |
-| `2` | Usage error (e.g. combining `--print` with `-i`) | Fix argument conflict. |
-| `3` | Fatal API or model error (Quota exhausted, auth fail) | Stderr contains structured `AGY_ERROR: {...}` JSON. Parse error code and report to user. |
+| `0` | Success, or mid-turn `--print-timeout` partial output | Check `finished_reason` and `denied_actions` in JSON; resume with `--conversation` if partial. |
+| `1` | Config/flag error, invalid `--json-schema`, unknown `--agent`, or `PreInvocation` hook termination | Fix flags/schema or inspect hook error message on stderr. |
+| `2` | Print-mode usage conflict (e.g., `-p` + `-i`) | Fix conflicting flags. |
+| `3` | Fatal API/model error (`AGY_ERROR: {...}` on stderr) OR `--print-timeout` terminated active background tasks (`v1.5.0+`) | Parse `AGY_ERROR`; check quota with `/usage` or resume `--conversation` if timed out. |
 
 ---
 
-## Loading Custom Skills and MCP Servers During Delegation
+## Loading Skills and MCP Servers During Delegation
 
-If the host assistant wants `agy` to utilize a specialized skill or MCP tool during its run:
-
-1. **Pre-installed Skills**: Skills located in `~/.gemini/config/skills/` or `<workspace>/.agents/skills/` are auto-discovered.
-2. **Explicit Skill Invocations**: Use leading slash command syntax in the prompt (e.g. `agy -p "/jbd-code-review-skill review src/" --dangerously-skip-permissions`).
-3. **MCP Tool Access**: Ensure required MCP servers are configured in `agy mcp list`. If not, configure them dynamically via `agy mcp add <name> <command>` before triggering the prompt.
+1. **Auto-discovered skills**: `~/.gemini/config/skills/` and `<workspace>/.agents/skills/` (note `v1.5.2+` restricts `.agents/skills.json` and `.agents/plugins.json` entries to paths inside the workspace/repo root).
+2. **Explicit skill invocation**: Start the prompt with `/<skill-name>` (e.g., `--print="/jbd-code-review-skill review src/"`).
+3. **MCP tools**: Verify with `"$AGY" mcp list`; add missing servers via `"$AGY" mcp add <name> <cmd|url>` before delegating.
