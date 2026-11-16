@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.9] - 2026-11-16
+
+### Added
+- "Pick model + effort" step in the host-agent contract: `agy models` lists this account's `<model>-<effort>` slugs; effort ceilings depend on sign-in method (Gemini 4 Hydrogen `xhigh` only with `GEMINI_API_KEY`, `AGY_ADC_AUTH`, or an enterprise gateway; Google sign-in tops out at `high`); unavailable `--effort` fails fast with exit `1` and the list of valid levels.
+- `run_workflow` tool (Python workflow fan-out to subagents using the bundled Python) (`agy` v1.5.9).
+- ACP context-window usage reporting (`agy` v1.5.8) and ACP fixes: `--login` saved-login fallback, MCP names with spaces, specific turn error messages (`agy` v1.5.9).
+- Admin settings `pluginControls.pluginsDisabled` / `marketplaceDisabled` (`agy` v1.5.9), `gateway.routeWebFetch`, `featureControls.remoteControlEnabled` (`agy` v1.5.8).
+- `/resume <id-prefix>` and faster resume picker (`agy` v1.5.9).
+- Security notes: sandbox proxy path-rule bypass fix and Windows exact-match command rules, MCP rules for eager tools (`agy` v1.5.8); HTTP MCP custom headers no longer forwarded across redirects; faster Auto-mode sandbox-escape review (`agy` v1.5.9).
+- Troubleshooting entries for invalid effort selection, Gemini-to-Claude `Invalid signature in thinking block` (fixed v1.5.8), the hourly macOS Keychain dialog (fixed v1.5.9), and UTF-8 BOM config files.
+
+### Changed
+- Rewrote quota guidance in `SKILL.md`, `resources/delegation_playbook.md`, `resources/cheat_sheet.md`, and usage pattern 28: `remaining_fraction` is the share left (`1` = 100% left); `reset_time` `1970-01-01T00:00:00Z` is a placeholder (no reset window), never a date; report "N% left"; stay silent at or above 20%; never say "full"/"exhausted" unless the value is `0`. The jq examples now hide the placeholder date and print nothing for healthy pools.
+- Version guidance: the binary auto-updates, so `agy --version` is the source of truth; `agy changelog` and the web changelog can each lag the other.
+- `agy models` description now reflects per-account listings instead of a fixed model list.
+
+### Fixed
+- `SKILL.md` deep-reference count (33 usage patterns, was 32).
+
 ## [1.5.7] - 2026-11-13
 
 ### Added

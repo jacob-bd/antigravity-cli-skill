@@ -1,12 +1,12 @@
 ---
 name: antigravity-cli
 description: "Use when an AI agent or user invokes Google's Antigravity CLI (agy), delegates plan reviews, code reviews, or coding tasks to agy, migrates from Gemini CLI, or automates agy in scripts, CI/CD, ACP editors, or multi-agent swarms."
-version: 1.5.7
+version: 1.5.9
 ---
 
 # Antigravity CLI (`agy`) Skill
 
-Targets `agy` **v1.5.7**. Executable is typically `~/.local/bin/agy` (override with `ANTIGRAVITY_CLI_ALIAS`). Shares the Go agent harness with the Antigravity IDE (zero npm dependencies, embedded `ripgrep`, up to 512 tool calls/turn on Gemini models).
+Targets `agy` **v1.5.9**. Executable is typically `~/.local/bin/agy` (override with `ANTIGRAVITY_CLI_ALIAS`). Shares the Go agent harness with the Antigravity IDE (zero npm dependencies, embedded `ripgrep`, up to 512 tool calls/turn on Gemini models).
 
 ## Host-Agent Execution Contract (Codex, Claude Code, OpenCode)
 
@@ -14,15 +14,19 @@ Follow this contract when invoking `agy` from another coding agent so calls run 
 
 1. **Resolve the binary first**: Non-login agent subshells often omit `~/.local/bin`:
    `AGY=$(command -v agy || echo "$HOME/.local/bin/agy")`
-2. **Pre-flight quota check (0 turns, 0 tokens spent)**: Before delegating a task, check remaining allowance for the model you plan to use:
+2. **Quota check before heavy runs (0 turns, 0 tokens spent)**:
    ```bash
    "$AGY" -p "/usage" --output-format json
    ```
-   Inspect `.command.data.groups[].buckets[]` (`id`, `name`, `remaining_fraction`, `reset_time`).
-   - If the target model's `remaining_fraction < 0.20` (or `0`), **warn the user** with the remaining percentage and `reset_time` (ISO-8601 UTC) before running heavy work.
-   - Gemini Pro, Gemini Flash, and Claude/GPT models have **separate quota pools**. If one pool is low, suggest switching `--model` to a model in a healthier pool (`"$AGY" models` lists available slugs).
+   Read `.command.data.groups[].buckets[]` (`id`, `name`, `remaining_fraction`, `reset_time`) for the model you plan to use. How to read it:
+   - `remaining_fraction` is the share **left**, not used: `1` = 100% left (untouched), `0.15` = 15% left, `0` = used up.
+   - `reset_time` of `1970-01-01T00:00:00Z` is an empty placeholder: no reset window is active. Never report it as a date.
+   - **Report it as "<model>: N% left".** Never write "quota full", "maxed", or "exhausted" unless the value is exactly `0`; "full" is ambiguous and reads as "used up".
+   - **At `>= 0.20`, say nothing about quota.** Warn only below `0.20`, with the % left and `reset_time` (unless it is the placeholder).
+   - Gemini Pro, Gemini Flash, and Claude/GPT models have **separate pools** (per-week and per-5-hour caps; `groups[].description`). If one pool is low, suggest a `--model` from another pool (`"$AGY" models` lists slugs).
    - Do not probe `"/credits"` unconditionally in scripts: accounts without AI credits exit `1`.
-3. **Use ephemeral `--settings` instead of `--dangerously-skip-permissions`**:
+3. **Pick model + effort**: `"$AGY" models` lists the slugs available to *this* account as `<model>-<effort>` (e.g. `gemini-4-hydrogen-high`). Effort levels depend on the model **and** the sign-in method: as of v1.5.8, Gemini 4 Hydrogen offers `xhigh` only with `GEMINI_API_KEY`, `AGY_ADC_AUTH`, or an enterprise gateway; a Google sign-in tops out at `high` for Carbon, Hydrogen, and Argon. "Highest effort" means the highest suffix `agy models` shows for that model. An unavailable `--effort` fails fast (exit `1`, 0 turns) with `has no "<level>" effort (available: ...)`, which is a safe way to probe.
+4. **Use ephemeral `--settings` instead of `--dangerously-skip-permissions`**:
    `agy` v1.5.7+ accepts `--settings '<json>'` for session-only config overrides (never written to `settings.json`). Unapproved tools in `-p` mode do not hang on stdin; `agy` denies them immediately and reports `.denied_actions[]`.
    - **Plan / architecture critique (read-only)**:
      ```bash
@@ -44,13 +48,13 @@ Follow this contract when invoking `agy` from another coding agent so calls run 
        --output-format json --print-timeout 10m
      ```
      Works identically across Personal, Pro/Ultra, and Business/Enterprise accounts without modifying user settings.
-4. **Hard prohibitions for host agents**:
+5. **Hard prohibitions for host agents**:
    - **Do NOT pass `--dangerously-skip-permissions`** for reviews, queries, or standard coding tasks. It triggers human-approval prompts in Codex/Claude Code and is still blocked by built-in protected-command denylists and Enterprise admin review policies (`v1.5.2+`, `v1.5.7+`). Reserve it strictly as an explicit user-authorized fallback.
    - **Do NOT pass `--mode plan`** to critique an existing plan or diff. `--mode plan` is an interactive plan-drafting mode that creates a `plan.md` artifact and stops asking for approval. Use `--settings '{"agentMode":""}'` so `agy` reads files natively, returns the critique in `.response`, and engine-blocks edits.
    - **Do NOT pass `--mode default`** (rejected with a warning; valid `--mode` values are `accept-edits`, `auto`, `plan`).
    - **Do NOT rely on unconfigured default mode**: `v1.5.7+` defaults sessions with no saved `agentMode` (including `-p`) to `auto` where available, and prints warnings on Business/Enterprise accounts. Pass `--mode` or `--settings` explicitly.
    - **Do NOT nest `--sandbox`** inside an outer agent sandbox (e.g., Codex Seatbelt / Landlock). Nested OS sandboxes fail or block `git` and `~/.gemini/antigravity-cli/`. Instead, request host network/sandbox access for the `agy` invocation when needed.
-5. **Mandatory completion & denial checks**:
+6. **Mandatory completion & denial checks**:
    Never treat exit code `0` alone as success:
    - Parse stdout JSON: check `.status`, `.response`, `.finished_reason` (`print_timeout`, `interrupted`, `error` — omitted on clean completion), `.denied_actions[]`, and `.conversation_id`.
    - If `finished_reason == "print_timeout"`, recover on the same context via `--conversation <id>` ("Stop exploring; summarize findings collected so far").
@@ -96,6 +100,7 @@ agy acp --login                      # Terminal Google sign-in (SSH / headless e
 agy acp --process-per-session        # Isolate each session in its own worker process
 ```
 Key flags: `--add-dir`, `--agent`, `--ide-mcp-port <port>` (requires `nc`), `--sandbox`, `--dangerously-skip-permissions`, `--include-default-customizations`, `--log-file`.
+Sessions report context-window usage to the editor at start/reload, after each model call, and after a model or thinking-level change (`v1.5.8+`). Since `v1.5.9`, `--login` falls back to the saved login when `settings.json` names an auth method with no credential, MCP server names with spaces work, and failed turns report the real error (model, quota) instead of a generic termination message.
 
 ### 2. `agy mcp` (MCP Server Management)
 Manages `~/.gemini/config/mcp_config.json` without hand-editing JSON (`v1.1.16+`):
@@ -130,8 +135,8 @@ agy plugin link <marketplace> <target>
 ### 4. `agy remote-control`, `agy mic-serve`, `agy agent`, `agy models`, `agy install`, `agy update`, `agy changelog`
 - `agy remote-control start [--name <host>] [--session] | status | stop`: OS daemon (`systemd`/`launchd`/background). In TUI: `/remote-control [on|off]`. Unsupported with `AGY_ADC_AUTH`.
 - `agy mic-serve [--addr 127.0.0.1:4713]`: Forward local microphone over SSH for `/voice`.
-- `agy agent` / `agy agents` and `agy models`: Human-readable lists (both reject `--output-format`; use `agy -p "/agents" --output-format json` for JSON agent lists). Current models include Gemini 4 Carbon (`gemini-4-carbon-{low,medium,high}`), Gemini 4 Hydrogen, Gemini 4 Argon, Gemini 3.8 Flash, and Claude Opus/Sonnet 5.5 (where enabled).
-- `agy install [--dir <path>] [--skip-path] [--skip-aliases]`, `agy update`, `agy changelog` (note: live release notes are at `https://antigravity.google/docs/changelog` if `agy changelog` lags behind binary version).
+- `agy agent` / `agy agents` and `agy models`: Human-readable lists (both reject `--output-format`; use `agy -p "/agents" --output-format json` for JSON agent lists). Lists only what this account can use, as `<model>-<effort>` slugs: Gemini 4 Carbon, Gemini 4 Hydrogen, Gemini 4 Argon, Gemini 3.x Flash, and Claude Opus/Sonnet 5.5 where enabled. Effort ceilings vary by sign-in method (see Host-Agent step 3).
+- `agy install [--dir <path>] [--skip-path] [--skip-aliases]`, `agy update`, `agy changelog`. The binary auto-updates in the background, so check `agy --version` before asserting what is installed or "latest". `agy changelog` prints notes for the installed binary; the web changelog (`https://antigravity.google/docs/changelog`) can lag a new release by days, and vice versa.
 
 ## Headless Automation (`-p`) Details
 
@@ -148,6 +153,7 @@ agy plugin link <marketplace> <target>
 ## Custom Agents, Swarms, Hooks & TUI
 
 - **Custom Agents & Rules**: Markdown agents live in `.agents/agents/<name>.md` or `~/.gemini/config/agents/<name>.md`. Rules (`GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`) have a dedicated 20,000-token budget (`v1.2.7+`). Workspace `.agents/{plugins,skills}.json` manifests only load paths inside the workspace/repo root (`v1.5.2+`).
+- **Workflows (`run_workflow` tool, `v1.5.9+`)**: The agent can run a Python workflow script that fans work out to many subagents in parallel or in stages and combines the results; it uses the Python bundled with the CLI (no local Python needed). Ask for it in the prompt; it is a model tool, not a flag.
 - **Swarms (`/swarm`, `v1.5.5+`–`v1.5.6+`)**: Coordinates parallel worker agents over a shared message board; `/swarm board` (`Alt+S`) opens live Roster/Posts/Message panes. Swarm/subagent Git worktrees inherit staged, unstaged, and untracked changes (`v1.5.5+`).
 - **Hooks (`hooks.json`)**: Stdin includes `lastUserInput` (`v1.4.7+`), `hookEventName`, `cwd`, `toolCall.id` (`v1.5.4+`), and `continuation_active` on `Stop` hooks (`v1.5.6+`). `PreInvocation` hooks can return `{"terminationBehavior":"terminate","errorMessage":{"userMessage":"..."}}` to block prompts (`v1.4.11+`). Plugin hooks receive `PLUGIN_ROOT` and `PLUGIN_DATA` (`v1.5.3+`).
 - **Deep References**:
@@ -155,13 +161,15 @@ agy plugin link <marketplace> <target>
   - [resources/agents_and_customization.md](resources/agents_and_customization.md) — Agent schema, swarms, manifests, plugins, hooks, skill metadata.
   - [resources/tui_reference.md](resources/tui_reference.md) — TUI shortcuts, `/swarm board`, `/projects`, `/diff`, `/compact`, `/btw`, Vim mode.
   - [resources/cheat_sheet.md](resources/cheat_sheet.md) — Compact quick-reference card & Gemini CLI migration table.
-  - [examples/usage_patterns.md](examples/usage_patterns.md) — 32 runnable automation recipes.
+  - [examples/usage_patterns.md](examples/usage_patterns.md) — 33 runnable automation recipes.
 
 ## Security, Sandbox, Auto Mode & Environment Variables
 
 - **Sandbox (`--sandbox`)**: Read-only `.git` (`v1.1.10+`); read/write `/tmp` and `$TMPDIR` (`v1.1.9+`) plus artifact/scratch dirs (`v1.2.10+`); blocks `~/Library/Application Support` (`v1.3.3+`), `~/.docker`, `~/.kube`, `~/_netrc` (`v1.4.6+`), and sensitive Google origins (`mail`/`drive`/`docs`/`accounts`/`console.cloud`, `v1.4.9+`). Sets `GIT_EDITOR`/`HGEDITOR`/`JJ_EDITOR=false` and `PAGER`/`GIT_PAGER`/`JJ_PAGER=cat`.
 - **Auto Mode (`--mode auto`)**: Default mode in `v1.5.7+` where available (macOS, Linux, Windows 11 24H2+; includes pay-as-you-go `AGY_ADC_AUTH` in `v1.5.6+`, unavailable on Business/Enterprise admin accounts). Reviews sandbox escapes with Gemini Flash (`v1.5.4+`), allowing safe GitHub API/existing-clone/public-SSH-key reads while blocking private keys and unsafe uploads (`v1.5.6+`). `toolPermission: "strict"` takes precedence over `auto` and `accept-edits` (`v1.5.7+`).
-- **Rule Syntax**: Prefix match by default; `regex:` prefix for regex rules. Multi-line rules apply (`v1.4.9+`).
+- **Rule Syntax**: Prefix match by default; `regex:` prefix for regex rules. Multi-line rules apply (`v1.4.9+`). On Windows, rules for commands run in `cmd`/PowerShell need an exact match (`v1.5.8+`). `mcp(server/tool)` deny/ask rules now also cover eager-loaded MCP tools and the `/browser` subagent's DevTools tools (`v1.5.8+`).
+- **Recent security fixes**: sandbox network-proxy path rules can no longer be bypassed with `%2F`, backslashes, or `..` (`v1.5.8`); HTTP MCP custom headers (API keys) are no longer forwarded across redirects to another host (`v1.5.9`). Auto mode's sandbox-escape reviewer searches the conversation and files directly, so it decides faster and times out less (`v1.5.9`).
+- **Admin settings**: `pluginControls.pluginsDisabled` / `pluginControls.marketplaceDisabled` for orgs without Gemini Enterprise (`v1.5.9`); `gateway.routeWebFetch` and `featureControls.remoteControlEnabled` (`v1.5.8`).
 
 | Environment Variable | Purpose | Introduced |
 | :--- | :--- | :--- |
@@ -194,5 +202,9 @@ agy plugin link <marketplace> <target>
 - **Review returns `"Please review and approve the plan"`**: You passed `--mode plan` for a critique; switch to `--settings '{"agentMode":""}'`.
 - **Headless JSON shows `denied_actions` and empty `response`**: Add the required `permissions.allow` rule in `--settings` (or use `--mode accept-edits` + `toolPermission: "always-proceed"` for coding tasks).
 - **Nested sandbox / network failure inside Codex**: Do not pass `--sandbox` inside an outer sandbox; run `agy` with host network/sandbox escalation.
-- **Exit Code 3 / Low Quota**: Check `AGY_ERROR` on stderr or run `agy -p "/usage" --output-format json`; switch `--model` to another quota pool if exhausted.
+- **Exit Code 3**: Read `AGY_ERROR` on stderr. If it is a quota error, run `agy -p "/usage" --output-format json` and switch `--model` to another pool only if the target shows `0` left (read the numbers per Host-Agent step 2).
+- **`invalid model selection ... has no "<level>" effort (available: ...)`**: That effort is not offered for this model on this sign-in; use the highest level in the message (exit `1`, nothing spent).
+- **`Invalid signature in thinking block` after switching from Gemini to Claude**: Fixed in `v1.5.8`; run `agy update`.
+- **macOS "Keychain Not Found" dialog about once an hour**: Fixed in `v1.5.9` (falls back to file token storage for the session).
+- **`settings.json` / `hooks.json` / agent files ignored on Windows**: UTF-8 BOM handling fixed in `v1.5.8`–`v1.5.9`; update.
 - **Enterprise Gateway HTTP 400/404**: Remote gateways require `https://` (`v1.5.5+`); trailing `/v1beta` and Gemini 4 Carbon thinking suffixes are handled in `v1.5.3+`/`v1.5.7+`.

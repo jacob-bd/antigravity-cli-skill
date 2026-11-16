@@ -1,6 +1,6 @@
 # Delegating Work to `agy` (Host Agent Playbook)
 
-This playbook is for AI coding agents (**Codex CLI, Codex App, Claude Code, OpenCode, Cursor, Aider**) delegating reviews, second-opinion reasoning, or implementation tasks to Google's Antigravity CLI (`agy` v1.5.7).
+This playbook is for AI coding agents (**Codex CLI, Codex App, Claude Code, OpenCode, Cursor, Aider**) delegating reviews, second-opinion reasoning, or implementation tasks to Google's Antigravity CLI (`agy` v1.5.9).
 
 Delegating to `agy` preserves host context, gives access to Gemini 4 Carbon / Hydrogen / Argon and Gemini 3.8 Flash, and provides independent cross-model verification.
 
@@ -17,7 +17,9 @@ Delegating to `agy` preserves host context, gives access to Gemini 4 Carbon / Hy
    "$AGY" -p "/usage" --output-format json
    ```
    Check `.command.data.groups[].buckets[]` for the model you plan to use (`id`, `name`, `remaining_fraction`, `reset_time`):
-   - **Warn the user** before launching if `remaining_fraction < 0.20` (or `0`), including the percentage left and `reset_time` (ISO-8601 UTC).
+   - `remaining_fraction` is the share **left**: `1` = 100% left (untouched), `0` = used up. Report it as "N% left"; never say "full" or "exhausted" unless it is `0`.
+   - `reset_time` of `1970-01-01T00:00:00Z` is a placeholder meaning no reset window is active; do not present it as a date.
+   - **Stay silent at `>= 0.20`.** Warn the user before launching only if it is below `0.20`, with the % left and `reset_time` (unless placeholder).
    - **Quota pool fallback**: Gemini Pro, Gemini Flash, and Claude/GPT models use **separate quota pools** (`groups[].description`). If your preferred model's pool is low or exhausted, suggest switching `--model` to an available pool (`"$AGY" models` lists slugs).
    - Do not run `"/credits"` unconditionally in scripts; accounts without AI credits exit `1`.
 
@@ -26,7 +28,7 @@ Delegating to `agy` preserves host context, gives access to Gemini 4 Carbon / Hy
 "$AGY" -p "/usage" --output-format json | jq -r '
   .command.data.groups[].buckets[]
   | select(.id == "gemini-4-carbon-high")
-  | "\(.name): \((.remaining_fraction * 100) | round)% remaining (resets \(.reset_time))"'
+  | "\(.name): \((.remaining_fraction * 100) | round)% left" + (if .reset_time == "1970-01-01T00:00:00Z" then "" else " (resets \(.reset_time))" end)'
 ```
 
 ---

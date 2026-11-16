@@ -1,4 +1,4 @@
-# agy CLI Usage Patterns (v1.5.7)
+# agy CLI Usage Patterns (v1.5.9)
 
 Executable patterns and architectural recipes for automating, scripting, and orchestrating Google's Antigravity CLI. Host coding assistants (Codex, Claude Code, OpenCode) should prefer ephemeral `--settings` overrides over `--dangerously-skip-permissions`.
 
@@ -502,7 +502,7 @@ def handle_tool_call(request):
 ---
 
 ## Pattern 28: Pre-Flight Quota Check & Low-Usage Warning
-Before delegating a heavy task, inspect zero-turn `/usage` JSON for the target model (`v1.1.11+`). Warn the user if `remaining_fraction < 0.20` (or `0`), or suggest switching to another quota pool (Gemini Pro, Gemini Flash, and Claude/GPT models maintain separate pools):
+Before delegating a heavy task, inspect zero-turn `/usage` JSON for the target model (`v1.1.11+`). `remaining_fraction` is the share **left** (`1` = 100% left). A `reset_time` of `1970-01-01T00:00:00Z` means no reset window is active; do not print it as a date. Stay silent at `>= 0.20`; warn below that, and suggest another pool only at `0` (Gemini Pro, Gemini Flash, and Claude/GPT models maintain separate pools):
 
 ```bash
 #!/usr/bin/env bash
@@ -514,12 +514,13 @@ MODEL_ID="${1:-gemini-4-carbon-high}"
 "$AGY" -p "/usage" --output-format json | jq -r --arg id "$MODEL_ID" '
   .command.data.groups[].buckets[]
   | select(.id == $id)
+  | (if .reset_time == "1970-01-01T00:00:00Z" then "no reset scheduled" else "resets \(.reset_time)" end) as $reset
   | if .remaining_fraction <= 0 then
-      "EXHAUSTED: \($id) at 0% (resets \(.reset_time)). Switch --model to another pool."
+      "USED UP: \($id) has 0% left (\($reset)). Switch --model to another pool."
     elif .remaining_fraction < 0.20 then
-      "LOW QUOTA: \($id) at \((.remaining_fraction * 100) | round)% (resets \(.reset_time)). Warn user before heavy runs."
+      "LOW: \($id) has \((.remaining_fraction * 100) | round)% left (\($reset)). Warn user before heavy runs."
     else
-      "OK: \($id) at \((.remaining_fraction * 100) | round)% remaining."
+      empty  # >= 20% left: nothing to report
     end'
 ```
 

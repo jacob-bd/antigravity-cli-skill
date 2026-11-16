@@ -1,4 +1,4 @@
-# agy Custom Agents, Swarms & Customization Reference (v1.5.7)
+# agy Custom Agents, Swarms & Customization Reference (v1.5.9)
 
 Detailed reference moved out of `SKILL.md` to keep it under agy's 24 KB skill body limit.
 

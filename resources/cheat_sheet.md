@@ -1,8 +1,9 @@
-# agy CLI Quick Reference (v1.5.7)
+# agy CLI Quick Reference (v1.5.9)
 
 ## Host-Agent Native Recipes (Zero `--dangerously-skip-permissions`)
 Resolve binary first: `AGY=$(command -v agy || echo "$HOME/.local/bin/agy")`
-Check quota first (0 turns/tokens): `"$AGY" -p "/usage" --output-format json` (warn user if target model's `remaining_fraction < 0.20`).
+Quota check before heavy runs (0 turns/tokens): `"$AGY" -p "/usage" --output-format json`. `remaining_fraction` = share **left** (`1` = 100% left); `reset_time` `1970-01-01T00:00:00Z` = no reset window (not a date). Say "N% left"; warn only below `0.20`, never call it "full"/"exhausted" unless `0`.
+Model + effort: `"$AGY" models` shows this account's `<model>-<effort>` slugs; Google sign-in tops out at `high` (Hydrogen `xhigh` needs `GEMINI_API_KEY`/`AGY_ADC_AUTH`/gateway).
 
 ```bash
 # 1. Plan / Architecture Review (read-only; do NOT use --mode plan)

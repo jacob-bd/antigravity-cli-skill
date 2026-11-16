@@ -19,10 +19,11 @@ An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the offic
 
 This is a skill built primarily for AI coding agents (**Codex CLI, Codex App, Claude Code, OpenCode, Cursor, Gemini CLI**) to invoke and automate the `agy` command-line tool natively. It covers:
 
-- Complete flag, subcommand, and environment reference for `agy` **v1.5.7**
+- Complete flag, subcommand, and environment reference for `agy` **v1.5.9**
 - **Agent-native delegation without `--dangerously-skip-permissions`**:
   - Ephemeral session overrides via `--settings '<json>'` for read-only plan reviews, read-only Git diff reviews, and scoped write+test runs (preventing host-agent approval interruptions in Codex and Claude Code)
-  - Zero-turn pre-flight quota checks via `agy -p "/usage" --output-format json` with low-quota warnings and quota-pool fallback guidance
+  - Zero-turn quota checks via `agy -p "/usage" --output-format json`, with unambiguous reading rules (`remaining_fraction` = share left, `1970` reset = no window) and warnings only below 20%
+  - Model + effort selection per account and sign-in method (`agy models`, fail-fast effort probing)
   - Strict completion and denial verification (`finished_reason`, `denied_actions[]`, and exit code `3` timeout/API errors)
 - New `agy` v1.5.0–v1.5.7 capabilities:
   - Agent Client Protocol stdio server (`agy acp`) with `--login`, `--process-per-session`, and `auto` mode
@@ -30,6 +31,7 @@ This is a skill built primarily for AI coding agents (**Codex CLI, Codex App, Cl
   - Parallel multi-agent Swarms (`/swarm` and `/swarm board` live view)
   - Enriched lifecycle hooks (`hookEventName`, `cwd`, `toolCall.id`, `continuation_active` on `Stop` hooks, `PreInvocation` termination, `PLUGIN_ROOT`/`PLUGIN_DATA`)
   - Updated Auto mode defaults (`v1.5.7`), `AGY_ADC_AUTH` PAYG Auto mode + Gemini 4 Carbon/Hydrogen/Argon, `ANTIGRAVITY_DISABLE_EMBEDDED_RIPGREP`, and Claude Code plugin/command/hook conversion
+- New in `agy` v1.5.8–v1.5.9: `run_workflow` Python fan-out tool, ACP context-usage reporting and login fallback, `pluginControls` admin settings, `/resume <id-prefix>`, and sandbox/MCP security fixes
 - Gemini CLI to `agy` migration guide and flag mapping
 - Best practices for automation, CI/CD, and multi-agent workflows
 
@@ -41,7 +43,7 @@ Google announced at I/O 2026 (May 19) that Gemini CLI is transitioning to Antigr
 
 | File | Description |
 | :--- | :--- |
-| `SKILL.md` | Main skill definition -- agent-first contract and complete v1.5.7 reference |
+| `SKILL.md` | Main skill definition -- agent-first contract and complete v1.5.9 reference |
 | `resources/cheat_sheet.md` | Quick reference card with native agent recipes, flags, subcommands, env vars, and migration mapping |
 | `resources/delegation_playbook.md` | Playbook for AI assistants (Codex, Claude Code, OpenCode) delegating reviews and coding tasks natively |
 | `resources/agents_and_customization.md` | Custom agent schema, swarms, manifests, plugin authoring, hooks, skill metadata |
@@ -77,7 +79,7 @@ Prefer automation? [Universal Skills Manager](https://github.com/jacob-bd/univer
 
 ## Status
 
-This skill tracks locally installed `agy` v1.5.7.
+This skill tracks locally installed `agy` v1.5.9.
 
 ## Support
 

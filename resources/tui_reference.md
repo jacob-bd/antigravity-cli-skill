@@ -1,4 +1,4 @@
-# agy Interactive Interface (TUI) Reference (v1.5.7)
+# agy Interactive Interface (TUI) Reference (v1.5.9)
 
 Detailed reference moved out of `SKILL.md` to keep it under agy's 24 KB skill body limit.
 
@@ -53,7 +53,7 @@ Added in `v1.1.11+` and expanded in `v1.2.9+`, `v1.2.12+`, `v1.4.9+`, and `v1.5.
 
 ### 8. Clipboard (`/copy`), Resume (`/resume`), Compact (`/compact`) & `/diff`
 - `/copy`: Copies latest response; `/copy <n>` copies n-th response; `/copy btw` copies `/btw` answer.
-- `/resume`: `Ctrl+F` toggles directory grouping (`pickerGrouping`).
+- `/resume`: `Ctrl+F` toggles directory grouping (`pickerGrouping`). `/resume <id>` accepts any unique prefix (e.g. the short ID in the status line) and reports `conversation <id> not found` for unknown IDs; the picker no longer stalls loading long sessions (`v1.5.9+`).
 - `/compact [message]`: Summarizes conversation to free context; with a message, answers it afterward (`Esc` cancels).
 - `/diff` Viewer: Syntax highlighting & folding (`Ctrl+O` fold, `f` changes-only), `/` live search (`n`/`N` next/prev match), `←`/`→` switch files, `[`/`]` Per Turn jump, Commit Tree (`Enter` opens commit).
 
