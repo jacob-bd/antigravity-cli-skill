@@ -1,0 +1,13 @@
+# OS & Editor junk
+.DS_Store
+._*
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs, temp files, and local env secrets
+*.log
+*.tmp
+.env
+.env.*

@@ -17,42 +17,61 @@ An AI agent skill for working with Google's Antigravity CLI (`agy`) -- the offic
 
 ## What This Is
 
-This is a skill built primarily for AI coding agents (**Codex CLI, Codex App, Claude Code, OpenCode, Cursor, Gemini CLI**) to invoke and automate the `agy` command-line tool natively. It covers:
+This skill is built primarily for AI coding agents (**Claude Code, Codex CLI, Codex App, OpenCode, Cursor, Gemini CLI**) to invoke, delegate to, and automate Google's `agy` CLI natively. It covers:
 
-- Complete flag, subcommand, and environment reference for `agy` **v1.5.9**
-- **Agent-native delegation without `--dangerously-skip-permissions`**:
-  - Ephemeral session overrides via `--settings '<json>'` for read-only plan reviews, read-only Git diff reviews, and scoped write+test runs (preventing host-agent approval interruptions in Codex and Claude Code)
-  - Zero-turn quota checks via `agy -p "/usage" --output-format json`, with unambiguous reading rules (`remaining_fraction` = share left, `1970` reset = no window) and warnings only below 20%
-  - Model + effort selection per account and sign-in method (`agy models`, fail-fast effort probing)
-  - Strict completion and denial verification (`finished_reason`, `denied_actions[]`, and exit code `3` timeout/API errors)
-- New `agy` v1.5.0–v1.5.7 capabilities:
-  - Agent Client Protocol stdio server (`agy acp`) with `--login`, `--process-per-session`, and `auto` mode
-  - Cloud Remote Agent sessions (`--remote-agent`) and local project management (`/projects`)
-  - Parallel multi-agent Swarms (`/swarm` and `/swarm board` live view)
-  - Enriched lifecycle hooks (`hookEventName`, `cwd`, `toolCall.id`, `continuation_active` on `Stop` hooks, `PreInvocation` termination, `PLUGIN_ROOT`/`PLUGIN_DATA`)
-  - Updated Auto mode defaults (`v1.5.7`), `AGY_ADC_AUTH` PAYG Auto mode + Gemini 4 Carbon/Hydrogen/Argon, `ANTIGRAVITY_DISABLE_EMBEDDED_RIPGREP`, and Claude Code plugin/command/hook conversion
-- New in `agy` v1.5.8–v1.5.9: `run_workflow` Python fan-out tool, ACP context-usage reporting and login fallback, `pluginControls` admin settings, `/resume <id-prefix>`, and sandbox/MCP security fixes
-- Gemini CLI to `agy` migration guide and flag mapping
-- Best practices for automation, CI/CD, and multi-agent workflows
+- **Complete `agy` v1.5.12 reference**: Flags, subcommands, settings, sandbox rules, environment variables, and interactive TUI workflows
+- **Agent-native headless delegation without `--dangerously-skip-permissions`**:
+  - Ephemeral session overrides via `--settings '<json>'` for read-only plan reviews, read-only Git diff reviews, and scoped write+test runs (avoiding host-agent approval prompts in Claude Code, Codex, and OpenCode)
+  - Zero-turn quota, model, and config checks (`agy -p "/usage" --output-format json`, `agy models`, `GEMINI_API_KEY` handling) with unambiguous quota reading rules and model/effort routing
+  - Strict completion, denial, and timeout verification (`finished_reason`, `denied_actions[]`, `--conversation` resume, `stream-json` parsing, and isolated `git worktree` coding)
+- **Multi-agent orchestration & extensibility**:
+  - Parallel Python fan-out workflows (`run_workflow`), interactive Swarms (`/swarm` and `/swarm board`), and cloud Remote Agents (`--remote-agent`)
+  - Agent Client Protocol stdio server (`agy acp`), MCP server management (`agy mcp`), plugins & validation (`agy plugin`), lifecycle hooks, and custom Markdown agents
+- **Migration & automation**:
+  - Gemini CLI to `agy` migration guide and flag mapping
+  - Production-ready recipes for CI/CD, structured `--json-schema` output, and multi-agent pipelines
 
 ## Background
 
 Google announced at I/O 2026 (May 19) that Gemini CLI is transitioning to Antigravity CLI. Consumer/free users lose Gemini CLI access on June 18, 2026. The `agy` CLI is a Go binary that shares the same agent harness as the Antigravity IDE desktop application.
 
-## Files
-
-| File | Description |
-| :--- | :--- |
-| `SKILL.md` | Main skill definition -- agent-first contract and complete v1.5.9 reference |
-| `resources/cheat_sheet.md` | Quick reference card with native agent recipes, flags, subcommands, env vars, and migration mapping |
-| `resources/delegation_playbook.md` | Playbook for AI assistants (Codex, Claude Code, OpenCode) delegating reviews and coding tasks natively |
-| `resources/agents_and_customization.md` | Custom agent schema, swarms, manifests, plugin authoring, hooks, skill metadata |
-| `resources/tui_reference.md` | Interactive TUI keybindings, `/swarm board`, `/projects`, `/diff`, `/btw`, settings |
-| `examples/usage_patterns.md` | 33 production-ready, runnable automation recipes and workflows |
-
 ## Installation
 
-Install the **entire skill folder**, not just `SKILL.md`. The main file links to `resources/*.md` and `examples/usage_patterns.md`, so a folder that contains only `SKILL.md` has broken references.
+### Quick Install (`npx skills` — Recommended)
+
+Install into Claude Code, Codex, OpenCode, Cursor, Gemini CLI, and other Agent Skills-compatible tools in one command:
+
+```bash
+# Interactive (pick target agents and global vs. project scope)
+npx skills add jacob-bd/antigravity-cli-skill
+```
+
+Non-interactive and maintenance commands:
+
+```bash
+# Global install for the main coding agents (no prompts)
+npx skills add jacob-bd/antigravity-cli-skill -g -a claude-code -a codex -a opencode -a cursor -a gemini-cli -y
+
+# Global install to all detected agents (add --copy if your environment does not support symlinks)
+npx skills add jacob-bd/antigravity-cli-skill -g --all
+
+# Preview skills in this repository without installing
+npx skills add jacob-bd/antigravity-cli-skill --list
+
+# Check for updates and upgrade installed skills
+npx skills check
+npx skills update
+```
+
+> **Note on flags & Antigravity paths:** `--all` is shorthand for `--skill '*' --agent '*' -y`. Passing `-a antigravity` installs globally to `~/.gemini/antigravity/skills/` (Antigravity IDE) and project-locally to `.agents/skills/` (shared with `agy` CLI and Codex). To install globally into Antigravity CLI's `~/.gemini/config/skills/` directory, use USM or the manual `rsync` command below.
+
+### Universal Skills Manager (USM)
+
+[Universal Skills Manager](https://github.com/jacob-bd/universal-skills-manager) auto-discovers `skills/antigravity-cli/`, deploys the skill to every detected tool (including Antigravity CLI's `~/.gemini/config/skills/`), and keeps copies in sync.
+
+### Manual Install (`git clone` + `rsync`)
+
+Install the **entire `skills/antigravity-cli/` folder**, not just `SKILL.md`. The main file links to `resources/*.md` and `examples/usage_patterns.md`, so copying only `SKILL.md` breaks those references.
 
 | Tool | User-scope skill directory |
 | :--- | :--- |
@@ -66,20 +85,31 @@ Install the **entire skill folder**, not just `SKILL.md`. The main file links to
 | Alef Agent | `~/.alef-agent/workspace/skills/antigravity-cli/` |
 
 ```bash
-# Clone once, then install into any tool's skill directory (example: Claude Code)
+# Clone once, then sync only the clean skill folder (example: Claude Code)
 git clone https://github.com/jacob-bd/antigravity-cli-skill.git
 TOOL_DIR=~/.claude/skills/antigravity-cli
 mkdir -p "$TOOL_DIR"
-rsync -a --delete --exclude '.git' --exclude '.DS_Store' antigravity-cli-skill/ "$TOOL_DIR/"
+rsync -a --delete --exclude '.DS_Store' antigravity-cli-skill/skills/antigravity-cli/ "$TOOL_DIR/"
 ```
 
-The same pattern works for project scope (e.g. `.agents/skills/antigravity-cli/` inside a repository) and for agy's alternate global skills root, `~/.gemini/antigravity-cli/skills/`.
+The same pattern works for project scope (e.g. `.agents/skills/antigravity-cli/` inside a repository) and for `agy`'s alternate global skills root (`~/.gemini/antigravity-cli/skills/`).
 
-Prefer automation? [Universal Skills Manager](https://github.com/jacob-bd/universal-skills-manager) deploys the folder to every detected tool and keeps the copies in sync.
+## Files
+
+The installable skill lives under `skills/antigravity-cli/` so repo-only files (`README.md`, `CHANGELOG.md`, `assets/`) stay out of installed agent skill directories.
+
+| File | Description |
+| :--- | :--- |
+| [`skills/antigravity-cli/SKILL.md`](skills/antigravity-cli/SKILL.md) | Main skill definition -- agent-first delegation contract and core `agy` v1.5.12 reference |
+| [`skills/antigravity-cli/resources/delegation_playbook.md`](skills/antigravity-cli/resources/delegation_playbook.md) | Playbook for AI assistants (Claude Code, Codex, OpenCode) delegating reviews, research, and coding tasks natively |
+| [`skills/antigravity-cli/resources/cheat_sheet.md`](skills/antigravity-cli/resources/cheat_sheet.md) | Quick reference for flags, subcommands, settings, env vars, and Gemini CLI migration mapping |
+| [`skills/antigravity-cli/resources/agents_and_customization.md`](skills/antigravity-cli/resources/agents_and_customization.md) | Custom agent schema, `run_workflow`, swarms, plugins, hooks, and skill metadata |
+| [`skills/antigravity-cli/resources/tui_reference.md`](skills/antigravity-cli/resources/tui_reference.md) | Interactive TUI keybindings, `/swarm board`, `/projects`, `/diff`, `/btw`, and settings |
+| [`skills/antigravity-cli/examples/usage_patterns.md`](skills/antigravity-cli/examples/usage_patterns.md) | Production-ready, runnable automation recipes and workflows |
 
 ## Status
 
-This skill tracks locally installed `agy` v1.5.9.
+This skill tracks locally installed `agy` **v1.5.12**. See [`CHANGELOG.md`](CHANGELOG.md) for full `agy` release history.
 
 ## Support
 
